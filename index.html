@@ -1,0 +1,718 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>cIRCo.chat</title>
+<meta name="description" content="Colorful chat rooms for cities, interests and spontaneous conversations. Every room is a different show.">
+<meta name="theme-color" content="#120E1A">
+<meta name="color-scheme" content="dark">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='32' fill='%23120E1A'/%3E%3Cpath d='M37.9 24.1A14 14 0 1 0 37.9 43.9' fill='none' stroke='%23F0483E' stroke-width='7' stroke-linecap='round'/%3E%3Ccircle cx='45' cy='19' r='4.5' fill='none' stroke='%23FFD447' stroke-width='3.5'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anonymous+Pro:ital,wght@0,400;0,700;1,400&family=Rye&display=swap">
+<style>
+/* cIRCo.chat — the marquee outside, plain IRC inside.
+   Rye only sets Latin strings (logo, #room names). Anonymous Pro carries everything else, Cyrillic included. */
+:root{
+  --night:#120E1A; --night-2:#1A1424; --night-3:#251D33; --line:#2F2640;
+  --paper:#F4E8CF; --muted:#A79BB4; --faint:#73678A;
+  --bulb:#FFD27A; --bulb-off:#47382A;
+  --red:#F0483E; --yellow:#FFD447;
+  --join:#7BD88F; --action:#C792EA; --notice:#E9B44C; --bad:#FF8A7A;
+  --display:"Rye","Rockwell Extra Bold","Rockwell",Georgia,serif;
+  --mono:"Anonymous Pro","PT Mono","DejaVu Sans Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--night);color:var(--paper);font:400 17px/1.55 var(--mono);-webkit-text-size-adjust:100%}
+body{min-height:100vh;min-height:100dvh}
+/* the big top at night: canvas stripes fanning out from the tent pole, barely there */
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:
+    radial-gradient(130% 90% at 50% 0%,transparent 0 35%,var(--night) 78%),
+    repeating-conic-gradient(from 0deg at 50% -40%,#18121F 0deg 3deg,var(--night) 3deg 6deg)}
+a{color:inherit}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--bulb);outline-offset:3px;border-radius:8px}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+[hidden]{display:none!important}
+
+/* ---------- lobby ---------- */
+.lobby{max-width:1080px;margin:0 auto;padding:clamp(14px,3vw,28px) clamp(16px,4vw,32px) 56px}
+.lang{display:flex;justify-content:flex-end;gap:2px}
+.lang button{font-size:14px;color:var(--muted);background:none;border:1px solid transparent;border-radius:999px;padding:4px 11px;cursor:pointer}
+.lang button[aria-pressed="true"]{color:var(--paper);border-color:var(--line)}
+.hero{display:flex;flex-direction:column;align-items:center;text-align:center;margin-top:clamp(6px,2vw,18px)}
+
+.sign{position:relative;max-width:100%;padding:clamp(34px,6vw,54px) clamp(34px,8vw,80px) clamp(28px,5vw,44px);border-radius:24px;
+  background:radial-gradient(90% 120% at 50% 35%,#2B2034,#1B1423 72%);
+  box-shadow:inset 0 0 0 1px #4A3A2A,inset 0 0 0 26px rgba(0,0,0,.18),0 50px 100px -40px #000}
+.bulbs{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+.bulbs rect{fill:none;stroke-linecap:round}
+.bulbs .on{stroke:var(--bulb);stroke-width:6;animation:power 1.2s linear both}
+.bulbs .off{stroke:var(--bulb-off);stroke-width:6.6}
+@keyframes power{0%{opacity:0}10%{opacity:.85}16%{opacity:.15}30%{opacity:1}38%{opacity:.35}52%{opacity:1}100%{opacity:1}}
+
+.logo{margin:0;font:400 clamp(66px,15vw,146px)/.92 var(--display);white-space:nowrap}
+.logo span span{display:inline-block;animation:lamp .7s linear both;animation-delay:calc(.35s + var(--i) * .13s)}
+.logo .lr{color:var(--red);text-shadow:0 0 26px rgba(240,72,62,.5),0 0 3px rgba(255,150,130,.8)}
+.logo .ly{color:var(--yellow);text-shadow:0 0 26px rgba(255,212,71,.42),0 0 3px rgba(255,246,200,.9)}
+@keyframes lamp{0%{opacity:.12;text-shadow:none}25%{opacity:.9}33%{opacity:.25}55%{opacity:1}64%{opacity:.6}100%{opacity:1}}
+.tagline{margin:.75em 0 0;font-style:italic;font-size:clamp(17px,2.3vw,21px);line-height:1.35}
+
+.intro{max-width:60ch;margin:30px auto 0;color:var(--muted)}
+.nick{display:flex;align-items:center;gap:6px;margin:16px auto 0;padding:5px 8px 5px 18px;border:1px solid var(--line);border-radius:999px;background:var(--night-2)}
+.nick:focus-within{border-color:var(--bulb)}
+.nick label{color:var(--muted);font-size:15px}
+.nick input{width:15ch;padding:8px 6px;font:700 18px var(--mono);color:var(--paper);background:transparent;border:0;outline:0}
+.hint{min-height:1.5em;margin:8px 0 0;font-size:14px;color:var(--faint)}
+.hint.bad{color:var(--bad)}
+
+.rings{display:grid;gap:clamp(30px,4vw,46px);margin-top:clamp(40px,6vw,72px)}
+.ring{display:grid;grid-template-columns:180px minmax(0,1fr);gap:24px;align-items:start}
+.ring h2{margin:0;padding-top:46px;font:400 15px/1.3 var(--mono);color:var(--muted)}
+.ring h2::before{content:"";display:inline-block;width:.75em;height:.75em;margin-right:.55em;border:2px solid currentColor;border-radius:50%;vertical-align:-.04em}
+.ring-rooms{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:20px 14px}
+.room{display:flex;flex-direction:column;align-items:center;gap:10px;padding:8px 6px 12px;border-radius:20px;text-align:center;text-decoration:none}
+.room-text{display:flex;flex-direction:column;align-items:center;gap:4px}
+.room .emblem{width:108px;height:108px;flex:none}
+.room-name{font:400 22px/1.15 var(--display);color:var(--paper);transition:color .2s}
+.room-topic{max-width:22ch;font-size:14px;line-height:1.4;color:var(--muted)}
+.room-meta{font-size:13px;color:var(--bulb)}
+.room-meta:empty{display:none}
+a.room:hover .room-name,a.room:focus-visible .room-name{color:var(--bulb)}
+.room.closed .emblem{opacity:.5;filter:grayscale(.55)}
+.room.closed .room-name{color:var(--faint)}
+.room.closed .room-meta{color:var(--faint)}
+
+.emblem{display:block;overflow:visible}
+.emblem .ring-off{fill:none;stroke:var(--bulb-off);stroke-width:3.4;stroke-linecap:round}
+.emblem .ring-on{fill:none;stroke:var(--bulb);stroke-width:3.8;stroke-linecap:round;opacity:0;transform-box:fill-box;transform-origin:center;transition:opacity .25s}
+.room.live .ring-on{opacity:1}
+a.room:hover .ring-on,a.room:focus-visible .ring-on{opacity:1;animation:chase .9s steps(3) infinite}
+@keyframes chase{to{transform:rotate(45deg)}}
+
+.house{display:grid;grid-template-columns:180px minmax(0,1fr);gap:24px;margin-top:clamp(52px,8vw,88px);padding-top:26px;border-top:1px dashed var(--line);font-size:15px;color:var(--muted)}
+.house h2{margin:0;font:inherit;color:var(--paper)}
+.house p{max-width:62ch;margin:0 0 10px}
+.house .preview{color:var(--faint)}
+
+/* ---------- room ---------- */
+.room-view{position:fixed;left:0;right:0;top:var(--vvt,0px);height:var(--vvh,100dvh);display:grid;grid-template-columns:220px minmax(0,1fr) 210px;background:var(--night)}
+.chanlist,.nicklist{min-height:0;overflow-y:auto;padding:16px 12px;background:var(--night-2)}
+.chanlist{border-right:1px solid var(--line)}
+.nicklist{border-left:1px solid var(--line)}
+.home{display:flex;align-items:center;gap:9px;padding:4px 8px 10px;font:400 22px var(--display);text-decoration:none}
+.home svg{width:30px;height:30px;flex:none}
+.chanlist h3,.nicklist h3{margin:18px 8px 6px;font:400 13px var(--mono);color:var(--faint)}
+.chan{display:flex;align-items:center;gap:10px;padding:5px 8px;border-radius:10px;color:var(--muted);text-decoration:none}
+.chan i{width:9px;height:9px;flex:none;border-radius:50%;background:var(--c)}
+.chan:hover{color:var(--paper)}
+.chan[aria-current="page"]{color:var(--paper);background:var(--night-3)}
+.chan .n{margin-left:auto;font-size:13px;color:var(--faint)}
+.nicklist ul{margin:0;padding:0;list-style:none}
+.nicklist li{padding:3px 8px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nicklist .op{color:var(--notice)}
+
+.chat{display:grid;grid-template-rows:auto minmax(0,1fr) auto;min-width:0;min-height:0}
+.chat-head{display:flex;align-items:center;gap:12px;min-width:0;padding:12px 18px;border-bottom:1px solid var(--line)}
+.back{display:none;align-items:center;justify-content:center;width:38px;height:38px;flex:none;margin-left:-8px;border-radius:50%;font-size:28px;line-height:1;text-decoration:none}
+.chat-emblem .emblem{width:44px;height:44px}
+.chat-title{min-width:0;flex:1}
+.chat-title h2{margin:0;font:400 24px/1.1 var(--display)}
+.chat-title p{margin:3px 0 0;overflow:hidden;font-size:14px;color:var(--muted);white-space:nowrap;text-overflow:ellipsis}
+.chat-here{flex:none;font-size:14px;color:var(--bulb)}
+.chat-here .s{display:none}
+
+.log{overflow-y:auto;overscroll-behavior:contain;padding:14px 18px 20px;font-size:16px;line-height:1.5}
+.line{display:grid;grid-template-columns:6ch 13ch minmax(0,1fr);column-gap:1ch;padding:1px 4px;border-radius:4px}
+.line time{color:var(--faint)}
+.line .who{overflow:hidden;font-weight:700;text-align:right;white-space:nowrap;text-overflow:ellipsis}
+.line .what{white-space:pre-wrap;overflow-wrap:anywhere}
+.msg .who::before{content:"<";color:var(--faint)}
+.msg .who::after{content:">";color:var(--faint)}
+.sys .who,.sys .what{color:var(--join)}
+.notice .who{color:var(--notice)}
+.notice .what{color:var(--muted)}
+.act .who,.act .what{color:var(--action)}
+.act .what{font-style:italic}
+.line.mention{background:linear-gradient(90deg,rgba(255,212,71,.12),transparent 75%);box-shadow:inset 2px 0 var(--yellow)}
+.line.day{display:block;margin:12px 0;text-align:center;font-size:14px;color:var(--faint)}
+
+.composer{display:flex;align-items:center;gap:10px;padding:10px 12px calc(10px + env(safe-area-inset-bottom)) 18px;border-top:1px solid var(--line);background:var(--night-2)}
+.prompt{flex:none;font-weight:700;white-space:nowrap}
+.prompt::before{content:"[";color:var(--faint)}
+.prompt::after{content:"]";color:var(--faint)}
+.composer input{flex:1;min-width:0;padding:10px 4px;font:400 16px var(--mono);color:var(--paper);background:transparent;border:0;outline:0}
+.composer input::placeholder{color:var(--faint)}
+.composer button{flex:none;padding:9px 18px;font-weight:700;color:var(--night);background:var(--bulb);border:0;border-radius:999px;cursor:pointer}
+
+/* ---------- small screens ---------- */
+@media (max-width:1100px){.room-view{grid-template-columns:200px minmax(0,1fr)}.nicklist{display:none}}
+@media (max-width:720px){
+  .room-view{grid-template-columns:minmax(0,1fr)}
+  .chanlist,.prompt{display:none}
+  .back{display:inline-flex}
+  .chat-head{padding:10px 14px}
+  .chat-here .l{display:none}
+  .chat-here .s{display:inline}
+  .log{padding:12px 14px 18px}
+  .line{display:block;padding-left:2ch;text-indent:-2ch}
+  .line time{margin-right:1ch}
+  .line .who{display:inline;margin-right:1ch}
+  .composer{padding-left:14px}
+}
+@media (max-width:640px){
+  .ring,.house{grid-template-columns:minmax(0,1fr);gap:8px}
+  .ring h2{padding-top:0}
+  .ring-rooms{grid-template-columns:minmax(0,1fr);gap:2px}
+  .room{flex-direction:row;gap:14px;padding:8px 4px;text-align:left}
+  .room-text{align-items:flex-start;gap:2px}
+  .room .emblem{width:66px;height:66px}
+  .room-name{font-size:20px}
+  .room-topic{max-width:none}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs><filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+</svg>
+
+<main id="lobby" class="lobby">
+  <div class="lang" role="group" aria-label="Language / Език">
+    <button type="button" data-lang="bg">BG</button><button type="button" data-lang="en">EN</button>
+  </div>
+  <header class="hero">
+    <div class="sign" id="sign">
+      <svg class="bulbs" aria-hidden="true" focusable="false"><rect class="on" filter="url(#glow)"/><rect class="off"/></svg>
+      <h1 class="logo"><span class="sr-only">cIRCo.chat</span><span aria-hidden="true"><span class="lr" style="--i:0">c</span><span class="ly" style="--i:1">I</span><span class="ly" style="--i:2">R</span><span class="ly" style="--i:3">C</span><span class="lr" style="--i:4">o</span></span></h1>
+      <p class="tagline" data-t="tagline"></p>
+    </div>
+    <p class="intro" data-t="intro"></p>
+    <div class="nick">
+      <label for="nickInput" data-t="nickLabel"></label>
+      <input id="nickInput" maxlength="16" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done" aria-describedby="nickHint">
+    </div>
+    <p class="hint" id="nickHint" aria-live="polite"></p>
+  </header>
+  <div class="rings" id="rings"></div>
+  <footer class="house">
+    <h2 data-t="rulesTitle"></h2>
+    <div><p data-t="rules"></p><p class="preview" data-t="preview"></p></div>
+  </footer>
+</main>
+
+<section id="room" class="room-view" hidden>
+  <aside class="chanlist">
+    <a class="home" href="#" data-t-aria="back"><svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="32" fill="#251D33"/><path d="M37.9 24.1A14 14 0 1 0 37.9 43.9" fill="none" stroke="#F0483E" stroke-width="7" stroke-linecap="round"/><circle cx="45" cy="19" r="4.5" fill="none" stroke="#FFD447" stroke-width="3.5"/></svg>cIRCo</a>
+    <nav id="chanlist" data-t-aria="roomsNav"></nav>
+  </aside>
+  <div class="chat">
+    <header class="chat-head">
+      <a class="back" href="#" data-t-aria="back">‹</a>
+      <span class="chat-emblem" id="chatEmblem"></span>
+      <div class="chat-title"><h2 id="chatName"></h2><p id="chatTopic"></p></div>
+      <span class="chat-here" id="chatHere"></span>
+    </header>
+    <div class="log" id="log" role="log" aria-live="polite" tabindex="0"></div>
+    <form class="composer" id="composer" autocomplete="off">
+      <label class="prompt" id="prompt" for="msgInput"></label>
+      <input id="msgInput" maxlength="400" autocomplete="off" enterkeyhint="send">
+      <button type="submit" data-t="send"></button>
+    </form>
+  </div>
+  <aside class="nicklist"><h3 id="peopleHead"></h3><ul id="people"></ul></aside>
+</section>
+<noscript><p style="padding:24px">cIRCo.chat needs JavaScript to open the rooms.</p></noscript>
+
+<script>
+(() => {
+"use strict";
+
+const CONFIG = { historyHours: 24, maxPerRoom: 300, maxLen: 400, minGapMs: 600 };
+const RESERVED = ["circo", "admin", "administrator", "mod", "moderator", "op", "root", "system", "server", "nickserv", "chanserv", "guest"];
+
+/* ---------- words ---------- */
+const TEXT = {
+  en: {
+    tagline: "Every room is a different show.",
+    intro: "Pick a nickname, choose a room and join the conversation.",
+    nickLabel: "Nickname",
+    nickHint: "Latin letters, digits, _ or -",
+    nickBad: "Use 2 to 16 Latin letters, digits, _ or -, starting with a letter.",
+    nickReserved: "That nickname is reserved.",
+    nickTaken: "Someone here already uses that nickname.",
+    soon: "Opens soon",
+    hereShort: n => `${n} here`,
+    hereLong: n => n === 1 ? "1 person here now" : `${n} people here now`,
+    peopleHead: "Here now",
+    roomsNav: "Rooms",
+    rulesTitle: "House rules",
+    rules: "Be kind and don't spam. Don't pretend to be someone else. Every message disappears after 24 hours.",
+    preview: "This is a preview: messages stay on this device until the live rooms open.",
+    back: "All rooms",
+    send: "Send",
+    placeholder: r => `Message ${r}`,
+    nowTalking: r => `Now talking in ${r}`,
+    topicIs: tp => `Topic: ${tp}`,
+    welcome: n => `Hi ${n}. Type /help to see the commands.`,
+    previewNotice: "Preview: messages stay on this device for 24 hours.",
+    joined: (n, r) => `${n} has joined ${r}`,
+    left: (n, r) => `${n} has left ${r}`,
+    nickChanged: (a, b) => `${a} is now known as ${b}`,
+    dayChanged: d => `Day changed to ${d}`,
+    help: ["/nick name   change your nickname", "/me text     describe what you're doing", "/join #room  go to another room", "/part        leave this room", "/topic       show the topic", "/clear       clear your screen"],
+    unknownCmd: c => `Unknown command ${c}. Type /help.`,
+    slowDown: "Slow down a little.",
+    noSuchRoom: r => `There's no room called ${r}.`,
+    roomClosed: r => `${r} opens soon.`
+  },
+  bg: {
+    tagline: "Всяка стая е различно шоу.",
+    intro: "Избери си ник, влез в стая и се включи в разговора.",
+    nickLabel: "Ник",
+    nickHint: "Латински букви, цифри, _ или -",
+    nickBad: "От 2 до 16 латински букви, цифри, _ или -, като първият знак е буква.",
+    nickReserved: "Този ник е запазен.",
+    nickTaken: "Някой тук вече ползва този ник.",
+    soon: "Отваря скоро",
+    hereShort: n => `${n} тук`,
+    hereLong: n => n === 1 ? "1 човек тук сега" : `${n} души тук сега`,
+    peopleHead: "Тук сега",
+    roomsNav: "Стаи",
+    rulesTitle: "Правила",
+    rules: "Без грубости и без спам. Не се представяй за някой друг. Всяко съобщение изчезва след 24 часа.",
+    preview: "Това е предварителна версия: съобщенията остават на това устройство, докато отворят живите стаи.",
+    back: "Всички стаи",
+    send: "Прати",
+    placeholder: r => `Съобщение до ${r}`,
+    nowTalking: r => `Вече си в ${r}`,
+    topicIs: tp => `Тема: ${tp}`,
+    welcome: n => `Здравей, ${n}. Напиши /help за командите.`,
+    previewNotice: "Предварителна версия: съобщенията остават на това устройство 24 часа.",
+    joined: (n, r) => `${n} влезе в ${r}`,
+    left: (n, r) => `${n} излезе от ${r}`,
+    nickChanged: (a, b) => `${a} вече е ${b}`,
+    dayChanged: d => `Нов ден: ${d}`,
+    help: ["/nick име    смени ника си", "/me текст    опиши какво правиш", "/join #стая  отиди в друга стая", "/part        излез от стаята", "/topic       покажи темата", "/clear       изчисти екрана"],
+    unknownCmd: c => `Непозната команда ${c}. Напиши /help.`,
+    slowDown: "Малко по-бавно.",
+    noSuchRoom: r => `Няма стая ${r}.`,
+    roomClosed: r => `${r} отваря скоро.`
+  }
+};
+
+const RINGS = [
+  { id: "cities", name: { en: "Cities", bg: "Градове" } },
+  { id: "night", name: { en: "After dark", bg: "Нощем" } },
+  { id: "fun", name: { en: "Just for fun", bg: "За забавление" } }
+];
+
+/* open:false keeps a room behind the curtain until moderation is ready */
+const ROOMS = [
+  { id: "sofia", ring: "cities", open: true, dot: "#F0483E", topic: { en: "The city, the traffic and everything in between", bg: "Градът, задръстванията и всичко между тях" } },
+  { id: "plovdiv", ring: "cities", open: true, dot: "#EE8A2A", topic: { en: "Old town, new conversations", bg: "Стар град, нови разговори" } },
+  { id: "london", ring: "cities", open: true, dot: "#C9466F", topic: { en: "Tea, the Tube and long talks", bg: "Чай, метро и дълги разговори" } },
+  { id: "global", ring: "cities", open: true, dot: "#4A86F0", topic: { en: "Everyone, from everywhere", bg: "Всички, отвсякъде" } },
+  { id: "night", ring: "night", open: true, dot: "#8B6CF0", topic: { en: "For everyone still awake", bg: "За всички, които още са будни" } },
+  { id: "dating", ring: "night", open: false, dot: "#F2668B", topic: { en: "Say hi. Be kind.", bg: "Кажи здрасти. Без грубости." } },
+  { id: "confessions", ring: "night", open: false, dot: "#D7263D", topic: { en: "Say it once. Gone in 24 hours.", bg: "Кажи го веднъж. След 24 часа го няма." } },
+  { id: "random", ring: "fun", open: true, dot: "#FFD447", topic: { en: "Anything goes (almost)", bg: "Всичко става (почти)" } },
+  { id: "music", ring: "fun", open: true, dot: "#E8B33C", topic: { en: "What are you listening to?", bg: "Какво слушаш?" } },
+  { id: "tech", ring: "fun", open: true, dot: "#3FC1C9", topic: { en: "Gadgets, code and old computers", bg: "Джаджи, код и стари компютри" } }
+];
+const ROOM = Object.fromEntries(ROOMS.map(r => [r.id, r]));
+
+/* ---------- emblems: one round badge per room, a ring of bulbs around each ---------- */
+const CREAM = "#F4E8CF";
+const star = (cx, cy, R, r) => {
+  let d = "";
+  for (let k = 0; k < 10; k++) {
+    const a = (-90 + k * 36) * Math.PI / 180, rad = k % 2 ? r : R;
+    d += (k ? "L" : "M") + (cx + rad * Math.cos(a)).toFixed(2) + " " + (cy + rad * Math.sin(a)).toFixed(2);
+  }
+  return d + "Z";
+};
+const disc = fill => `<circle cx="50" cy="50" r="40" fill="${fill}"/>`;
+const ICONS = {
+  sofia: disc("#C8352B") +
+    `<g fill="#FFD447"><rect x="26" y="56" width="9" height="16"/><rect x="36" y="50" width="7" height="22"/><rect x="44" y="52" width="14" height="20"/><path d="M44 52a7 7 0 0 1 14 0z"/><rect x="50.25" y="38" width="1.5" height="8"/><rect x="48.5" y="40.5" width="5" height="1.5"/><rect x="59" y="55" width="7" height="17"/><rect x="67" y="60" width="8" height="12"/><rect x="24" y="72" width="52" height="2.5"/></g>` +
+    `<path d="${star(33, 33, 6.5, 2.6)}" fill="${CREAM}"/>`,
+  plovdiv: disc("#EE8A2A") +
+    `<g fill="none" stroke="#23479A" stroke-width="4"><path d="M28 70a22 22 0 0 1 44 0"/><path d="M35 70a15 15 0 0 1 30 0"/><path d="M42 70a8 8 0 0 1 16 0"/></g><rect x="24" y="70" width="52" height="4" fill="#23479A"/>` +
+    `<g fill="${CREAM}"><ellipse cx="34" cy="31" rx="5" ry="6"/><ellipse cx="65" cy="28" rx="5.5" ry="6.5"/></g><g fill="none" stroke="${CREAM}" stroke-width="1.2"><path d="M34 37q-2 4 0 8"/><path d="M65 34.5q2 4 0 8"/></g>`,
+  london: disc("#7E1F3A") +
+    `<g fill="${CREAM}"><path d="M39 32Q50 24 61 32z"/><rect x="39" y="32" width="22" height="40" rx="1.5"/><rect x="36" y="72" width="28" height="3.5" rx="1"/></g>` +
+    `<g fill="#1F2B5E"><rect x="41.5" y="34.5" width="17" height="4"/><rect x="42.5" y="42" width="7" height="7"/><rect x="50.5" y="42" width="7" height="7"/><rect x="42.5" y="50" width="7" height="7"/><rect x="50.5" y="50" width="7" height="7"/><rect x="42.5" y="58" width="7" height="7"/><rect x="50.5" y="58" width="7" height="7"/></g>`,
+  global: disc("#2457C5") +
+    `<circle cx="50" cy="50" r="21" fill="#3BB273"/><g fill="none" stroke="#FFD447" stroke-width="2.6"><ellipse cx="50" cy="50" rx="8" ry="21"/><path d="M29 50h42"/><path d="M33 39q17 5 34 0"/><path d="M33 61q17-5 34 0"/></g>`,
+  night: disc("#5A3FC9") +
+    `<circle cx="68" cy="31" r="8" fill="${CREAM}"/><circle cx="71.5" cy="28" r="7" fill="#5A3FC9"/>` +
+    `<path d="M28 72L50 44l22 28z" fill="#241B5E"/><g stroke="#5A3FC9" stroke-width="3"><path d="M50 44l-8 28"/><path d="M50 44l8 28"/></g><path d="M45 72q5-14 10 0z" fill="#FFD27A"/>` +
+    `<path d="M50 44v-9" stroke="${CREAM}" stroke-width="1.6"/><path d="M50 35l8 3-8 3z" fill="${CREAM}"/><circle cx="33" cy="35" r="1.5" fill="${CREAM}"/><circle cx="41" cy="27" r="1.1" fill="${CREAM}"/>`,
+  dating: disc("#F2668B") +
+    `<g fill="#6E1027"><g transform="rotate(12 36 62)"><path d="M26 42h20q-1.5 11-10 11t-10-11z"/><rect x="35" y="53" width="2" height="13"/><rect x="30" y="66" width="12" height="2.6" rx="1.3"/></g>` +
+    `<g transform="rotate(-12 64 62)"><path d="M54 42h20q-1.5 11-10 11t-10-11z"/><rect x="63" y="53" width="2" height="13"/><rect x="58" y="66" width="12" height="2.6" rx="1.3"/></g></g>` +
+    `<path d="${star(50, 31, 5.5, 2.1)}" fill="${CREAM}"/>`,
+  confessions: disc("#3A1B2B") +
+    `<g fill="#D7263D"><path d="M28 33h17q-6 19-1 39H28z"/><path d="M72 33H55q6 19 1 39h16z"/><path d="M27 27h46v5q-2.9 3-5.75 0-2.88 3-5.75 0-2.87 3-5.75 0-2.87 3-5.75 0-2.88 3-5.75 0-2.87 3-5.75 0-2.88 3-5.75 0-2.87 3-5.75 0z"/></g>` +
+    `<g fill="none" stroke="${CREAM}" stroke-width="2.2" stroke-linecap="round"><path d="M43.5 50q6.5 6 13 0"/><path d="M46 53.4l-1.2 2.6M50 54.8v2.8M54 53.4l1.2 2.6"/></g>`,
+  random: disc("#2E2647") +
+    `<path d="M31 56Q50 10 69 56" fill="none" stroke="${CREAM}" stroke-width="1.6" stroke-dasharray="2.5 3.5" opacity=".7"/>` +
+    `<circle cx="31" cy="60" r="7.5" fill="#F0483E"/><circle cx="50" cy="35" r="7.5" fill="#FFD447"/><circle cx="69" cy="60" r="7.5" fill="#3FC1C9"/>`,
+  music: disc("#D9A027") +
+    `<rect x="29" y="60" width="28" height="12" rx="2" fill="#5B2277"/><rect x="27" y="56.5" width="32" height="3" rx="1.5" fill="${CREAM}"/>` +
+    `<path d="M47 57l5-7" stroke="#5B2277" stroke-width="3" stroke-linecap="round"/>` +
+    `<path d="M50.5 49Q57 38 52.77 25.45L75.23 38.55Q61 43 53.5 51.5z" fill="#5B2277"/>` +
+    `<g transform="rotate(30.3 64 32)"><ellipse cx="64" cy="32" rx="13" ry="6" fill="${CREAM}"/><ellipse cx="64" cy="32" rx="10.5" ry="4.2" fill="#3B1450"/></g>`,
+  tech: disc("#1BA9BF") +
+    `<rect x="28" y="28" width="44" height="34" rx="4" fill="#0F2A4A"/><rect x="33" y="33" width="34" height="24" rx="2" fill="#08182B"/>` +
+    `<path d="M38 40l5 4-5 4" fill="none" stroke="${CREAM}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><rect x="46" y="46.5" width="7" height="2.5" fill="${CREAM}"/>` +
+    `<rect x="45" y="62" width="10" height="5" fill="#0F2A4A"/><rect x="36" y="67" width="28" height="4" rx="2" fill="#0F2A4A"/>`
+};
+const RING_R = 46.5, RING_SP = 2 * Math.PI * RING_R / 24;
+const emblem = id => `<svg class="emblem" viewBox="0 0 100 100" aria-hidden="true" focusable="false">` +
+  `<circle class="ring-off" cx="50" cy="50" r="${RING_R}" stroke-dasharray="0 ${RING_SP.toFixed(3)}"/>` +
+  `<circle class="ring-on" cx="50" cy="50" r="${RING_R}" stroke-dasharray="0 ${(RING_SP * 3).toFixed(3)}" filter="url(#glow)"/>` +
+  ICONS[id] + `</svg>`;
+
+/* ---------- small helpers ---------- */
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+};
+const KEY = { nick: "circo:nick", lang: "circo:lang", log: id => "circo:v1:log:" + id };
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
+const pad = n => String(n).padStart(2, "0");
+const hhmm = ts => { const d = new Date(ts); return pad(d.getHours()) + ":" + pad(d.getMinutes()); };
+const dayKey = ts => new Date(ts).toDateString();
+const NICK_COLORS = ["#FF6B5E", "#FF9F43", "#FFD447", "#7BD88F", "#3FC1C9", "#8BE9FD", "#7AA2FF", "#FF79C6", "#C792EA", "#E3C9A0"];
+const nickColor = n => { let h = 0x811c9dc5; for (const ch of n.toLowerCase()) { h ^= ch.charCodeAt(0); h = Math.imul(h, 0x01000193) >>> 0; } return NICK_COLORS[h % NICK_COLORS.length]; };
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+
+let lang = store.get(KEY.lang, null) || ((navigator.language || "").toLowerCase().startsWith("bg") ? "bg" : "en");
+const t = (k, ...a) => { const v = TEXT[lang][k] ?? TEXT.en[k]; return typeof v === "function" ? v(...a) : v; };
+
+/* ---------- the wire ----------
+   Preview transport: history in localStorage, live events between tabs of this browser.
+   A server transport (WebSocket) only has to offer the same methods. */
+const Live = (() => {
+  const tab = uid();
+  const bc = "BroadcastChannel" in window ? new BroadcastChannel("circo-v1") : null;
+  const peers = new Map(), subs = new Set(), TTL = 90e3;
+  let me = { nick: "", room: "" };
+  const cut = list => { const since = Date.now() - CONFIG.historyHours * 3600e3; return (Array.isArray(list) ? list : []).filter(m => m && m.t > since).slice(-CONFIG.maxPerRoom); };
+  const emit = ev => subs.forEach(fn => fn(ev));
+  const post = ev => { try { if (bc) bc.postMessage({ ...ev, tab }); } catch {} };
+  const prune = () => { const since = Date.now() - TTL; let gone = false; for (const [k, p] of peers) if (p.t < since) { peers.delete(k); gone = true; } return gone; };
+  if (bc) bc.onmessage = ({ data: ev }) => {
+    if (!ev || ev.tab === tab) return;
+    if (ev.type === "here") { peers.set(ev.tab, { nick: ev.nick, room: ev.room, t: Date.now() }); if (ev.ask) post({ type: "here", ...me }); emit({ type: "presence" }); }
+    else if (ev.type === "bye") { peers.delete(ev.tab); emit({ type: "presence" }); }
+    else emit(ev);
+  };
+  const api = {
+    history: room => cut(store.get(KEY.log(room), [])),
+    send(room, msg) { const list = cut(store.get(KEY.log(room), [])); list.push(msg); store.set(KEY.log(room), list); post({ type: "msg", room, msg }); },
+    announce: post,
+    presence(nick, room, ask) { me = { nick, room }; post({ type: "here", nick, room, ask: !!ask }); },
+    people(room) { prune(); const s = new Set(); for (const p of peers.values()) if (p.room === room) s.add(p.nick); if (room && me.room === room) s.add(me.nick); return [...s]; },
+    count: room => api.people(room).length,
+    taken(n) { prune(); n = n.toLowerCase(); for (const p of peers.values()) if (p.nick.toLowerCase() === n) return true; return false; },
+    on: fn => subs.add(fn),
+    start(nick) { api.presence(nick, "", true); setInterval(() => { post({ type: "here", ...me }); if (prune()) emit({ type: "presence" }); }, 25e3); },
+    stop() { post({ type: "bye" }); }
+  };
+  return api;
+})();
+
+/* ---------- nickname ---------- */
+const NICK_RE = /^[A-Za-z][A-Za-z0-9_-]{1,15}$/;
+let nick = store.get(KEY.nick, "");
+if (!NICK_RE.test(nick || "")) { nick = "Guest" + (1000 + Math.floor(Math.random() * 9000)); store.set(KEY.nick, nick); }
+const nickError = v => {
+  if (!NICK_RE.test(v)) return t("nickBad");
+  if (RESERVED.includes(v.toLowerCase()) && v.toLowerCase() !== nick.toLowerCase()) return t("nickReserved");
+  if (v.toLowerCase() !== nick.toLowerCase() && Live.taken(v)) return t("nickTaken");
+  return "";
+};
+function setNick(v, fromChat) {
+  v = (v || "").trim();
+  if (v === nick) return true;
+  const err = nickError(v);
+  if (err) { if (fromChat) notice(err); return false; }
+  const old = nick;
+  nick = v; store.set(KEY.nick, nick);
+  if (current) { sys(t("nickChanged", old, nick)); Live.announce({ type: "nick", room: current, old, nick }); }
+  Live.presence(nick, current || "");
+  if (nickInput.value !== nick) nickInput.value = nick;
+  paintPrompt(); updatePeople();
+  return true;
+}
+
+/* ---------- lobby ---------- */
+const nickInput = $("#nickInput"), hint = $("#nickHint");
+const showHint = err => { hint.textContent = err || t("nickHint"); hint.classList.toggle("bad", !!err); };
+nickInput.addEventListener("input", () => {
+  const v = nickInput.value.trim();
+  if (v === nick) return showHint("");
+  const err = nickError(v);
+  showHint(err);
+  if (!err) setNick(v);
+});
+nickInput.addEventListener("blur", () => { if (nickInput.value.trim() !== nick) { nickInput.value = nick; showHint(""); } });
+nickInput.addEventListener("keydown", e => { if (e.key === "Enter") nickInput.blur(); });
+
+function renderRings() {
+  $("#rings").innerHTML = RINGS.map(g =>
+    `<section class="ring"><h2>${esc(g.name[lang])}</h2><div class="ring-rooms">` +
+    ROOMS.filter(r => r.ring === g.id).map(r => {
+      const inner = emblem(r.id) + `<span class="room-text"><span class="room-name">#${r.id}</span><span class="room-topic">${esc(r.topic[lang])}</span><span class="room-meta">${r.open ? "" : esc(t("soon"))}</span></span>`;
+      return r.open ? `<a class="room" href="#${r.id}" data-room="${r.id}">${inner}</a>` : `<div class="room closed">${inner}</div>`;
+    }).join("") + `</div></section>`).join("");
+  updateCounts();
+}
+function updateCounts() {
+  $$("#rings .room[data-room]").forEach(a => {
+    const n = Live.count(a.dataset.room);
+    a.classList.toggle("live", n > 0);
+    $(".room-meta", a).textContent = n ? t("hereShort", n) : "";
+  });
+  if (current) renderChanlist();
+}
+
+/* the marquee: bulbs follow the sign's edge; every third one goes dark and the gap runs clockwise */
+const sign = $("#sign"), bulbs = $(".bulbs", sign), bulbOn = $(".on", bulbs), bulbOff = $(".off", bulbs);
+let chase = null;
+function layoutSign() {
+  if ($("#lobby").hidden) return;
+  const w = sign.clientWidth, h = sign.clientHeight;
+  if (!w || !h) return;
+  const inset = 13, rx = 11, W = w - 2 * inset, H = h - 2 * inset;
+  const per = 2 * (W + H) - 8 * rx + 2 * Math.PI * rx;
+  const n = Math.max(12, Math.round(per / 21 / 3) * 3), sp = per / n;
+  bulbs.setAttribute("viewBox", `0 0 ${w} ${h}`);
+  for (const r of [bulbOn, bulbOff]) { r.setAttribute("x", inset); r.setAttribute("y", inset); r.setAttribute("width", W); r.setAttribute("height", H); r.setAttribute("rx", rx); }
+  bulbOn.setAttribute("stroke-dasharray", `0 ${sp}`);
+  bulbOff.setAttribute("stroke-dasharray", `0 ${3 * sp}`);
+  if (chase) chase.cancel();
+  chase = null;
+  if (!reduceMotion.matches && bulbOff.animate) {
+    chase = bulbOff.animate([{ strokeDashoffset: "0px" }, { strokeDashoffset: `${-3 * sp}px` }],
+      { duration: 1500, iterations: Infinity, easing: "steps(3)", delay: Math.max(0, 1300 - performance.now()) });
+  }
+}
+
+/* ---------- room ---------- */
+let current = null, lastDay = null, lastSent = 0;
+const log = $("#log"), msgInput = $("#msgInput");
+const sent = []; let sentPos = 0;
+
+function renderChanlist() {
+  $("#chanlist").innerHTML = RINGS.map(g => `<h3>${esc(g.name[lang])}</h3>` +
+    ROOMS.filter(r => r.ring === g.id && r.open).map(r => {
+      const n = Live.count(r.id);
+      return `<a class="chan" href="#${r.id}" style="--c:${r.dot}"${r.id === current ? ' aria-current="page"' : ""}><i></i>#${r.id}${n ? `<span class="n">${n}</span>` : ""}</a>`;
+    }).join("")).join("");
+}
+function updatePeople() {
+  if (!current) return;
+  const people = Live.people(current).sort((a, b) => a.localeCompare(b));
+  $("#chatHere").innerHTML = `<span class="l">${esc(t("hereLong", people.length))}</span><span class="s">${esc(t("hereShort", people.length))}</span>`;
+  $("#peopleHead").textContent = `${t("peopleHead")} (${people.length})`;
+  $("#people").innerHTML = `<li class="op">@cIRCo</li>` + people.map(p => `<li style="color:${nickColor(p)}">${esc(p)}</li>`).join("");
+}
+function paintPrompt() {
+  const p = $("#prompt");
+  p.textContent = nick;
+  p.style.color = nickColor(nick);
+}
+
+const nearBottom = () => log.scrollHeight - log.scrollTop - log.clientHeight < 80;
+function push(el, ts, force) {
+  const stick = force || nearBottom();
+  const k = dayKey(ts);
+  if (lastDay && k !== lastDay) {
+    const d = document.createElement("div");
+    d.className = "line day";
+    d.textContent = t("dayChanged", new Date(ts).toLocaleDateString(lang === "bg" ? "bg-BG" : "en-GB", { weekday: "long", day: "numeric", month: "long" }));
+    log.append(d);
+  }
+  lastDay = k;
+  log.append(el);
+  if (stick) log.scrollTop = log.scrollHeight;
+}
+function line(cls, ts, who, color, text) {
+  const el = document.createElement("div");
+  el.className = "line " + cls;
+  const tm = document.createElement("time");
+  tm.dateTime = new Date(ts).toISOString();
+  tm.textContent = hhmm(ts);
+  const w = document.createElement("span");
+  w.className = "who";
+  w.textContent = who;
+  if (color) w.style.color = color;
+  const x = document.createElement("span");
+  x.className = "what";
+  x.textContent = text;
+  el.append(tm, w, x);
+  return el;
+}
+const sys = text => { const ts = Date.now(); push(line("sys", ts, "***", null, text), ts); };
+const notice = text => { const ts = Date.now(); push(line("notice", ts, "-cIRCo-", null, text), ts); };
+const mentions = text => new RegExp(`(?:^|[^\\w-])${nick}(?![\\w-])`, "i").test(text);
+function addMsg(m, mine) {
+  if (!m || typeof m.text !== "string" || typeof m.nick !== "string" || typeof m.t !== "number") return;
+  const el = m.kind === "act" ? line("act", m.t, "*", null, `${m.nick} ${m.text}`) : line("msg", m.t, m.nick, nickColor(m.nick), m.text);
+  if (!mine && m.nick !== nick && mentions(m.text)) el.classList.add("mention");
+  push(el, m.t, mine);
+}
+function say(kind, text) {
+  const msg = { id: uid(), t: Date.now(), nick, kind, text: text.slice(0, CONFIG.maxLen) };
+  Live.send(current, msg);
+  addMsg(msg, true);
+}
+
+function enterRoom(id) {
+  const r = ROOM[id];
+  if (current === id) return;
+  if (current) Live.announce({ type: "part", room: current, nick });
+  current = id;
+  $("#lobby").hidden = true;
+  $("#room").hidden = false;
+  $("#chatEmblem").innerHTML = emblem(id);
+  $("#chatName").textContent = "#" + id;
+  $("#chatTopic").textContent = r.topic[lang];
+  msgInput.placeholder = t("placeholder", "#" + id);
+  document.title = `#${id} · cIRCo.chat`;
+  log.innerHTML = "";
+  lastDay = null;
+  Live.history(id).forEach(m => addMsg(m, m.nick === nick));
+  sys(t("nowTalking", "#" + id));
+  sys(t("topicIs", r.topic[lang]));
+  notice(t("welcome", nick));
+  notice(t("previewNotice"));
+  log.scrollTop = log.scrollHeight;
+  Live.presence(nick, id);
+  Live.announce({ type: "join", room: id, nick });
+  paintPrompt(); renderChanlist(); updatePeople();
+  if (matchMedia("(hover: hover) and (pointer: fine)").matches) msgInput.focus();
+}
+function showLobby() {
+  if (current) { Live.announce({ type: "part", room: current, nick }); current = null; Live.presence(nick, ""); }
+  $("#room").hidden = true;
+  $("#lobby").hidden = false;
+  document.title = "cIRCo.chat";
+  updateCounts();
+  requestAnimationFrame(layoutSign);
+}
+function route() {
+  const id = decodeURIComponent(location.hash.replace(/^#\/?/, "")).toLowerCase();
+  if (ROOM[id] && ROOM[id].open) return enterRoom(id);
+  if (location.href.includes("#")) history.replaceState(null, "", location.pathname + location.search);
+  showLobby();
+}
+
+function command(raw) {
+  const [cmd, ...rest] = raw.slice(1).split(/\s+/);
+  const arg = rest.join(" ").trim();
+  switch ((cmd || "").toLowerCase()) {
+    case "help": t("help").forEach(notice); break;
+    case "me": if (arg) say("act", arg); break;
+    case "nick": setNick(arg, true); break;
+    case "join": case "j": {
+      const id = arg.replace(/^#/, "").toLowerCase();
+      if (!ROOM[id]) notice(t("noSuchRoom", "#" + id));
+      else if (!ROOM[id].open) notice(t("roomClosed", "#" + id));
+      else location.hash = id;
+      break;
+    }
+    case "part": case "leave": location.hash = ""; break;
+    case "topic": sys(t("topicIs", ROOM[current].topic[lang])); break;
+    case "clear": log.innerHTML = ""; lastDay = null; break;
+    default: notice(t("unknownCmd", "/" + cmd));
+  }
+}
+$("#composer").addEventListener("submit", e => {
+  e.preventDefault();
+  const v = msgInput.value.trim();
+  if (!v || !current) return;
+  const isCmd = v.startsWith("/") && !v.startsWith("//");
+  if (!isCmd && Date.now() - lastSent < CONFIG.minGapMs) return notice(t("slowDown"));
+  msgInput.value = "";
+  sent.push(v); sentPos = sent.length;
+  if (isCmd) return command(v);
+  lastSent = Date.now();
+  say("msg", v.startsWith("//") ? v.slice(1) : v);
+});
+msgInput.addEventListener("keydown", e => {
+  if (e.key === "ArrowUp" && sentPos > 0 && (!msgInput.value || msgInput.value === sent[sentPos])) { e.preventDefault(); msgInput.value = sent[--sentPos]; }
+  else if (e.key === "ArrowDown" && sentPos < sent.length) { e.preventDefault(); msgInput.value = sent[++sentPos] || ""; }
+  else if (e.key === "Tab" && !e.shiftKey) {
+    /* IRC habit: Tab completes a nickname */
+    const pos = msgInput.selectionStart, before = msgInput.value.slice(0, pos);
+    const m = /([A-Za-z][\w-]*)$/.exec(before);
+    if (!m) return;
+    const hit = Live.people(current).find(p => p !== nick && p.toLowerCase().startsWith(m[1].toLowerCase()));
+    if (!hit) return;
+    e.preventDefault();
+    const start = pos - m[1].length, tail = start === 0 ? ": " : " ";
+    msgInput.value = before.slice(0, start) + hit + tail + msgInput.value.slice(pos);
+    msgInput.setSelectionRange(start + hit.length + tail.length, start + hit.length + tail.length);
+  }
+});
+
+Live.on(ev => {
+  if (ev.type === "presence") { updateCounts(); updatePeople(); return; }
+  if (!current || ev.room !== current) return;
+  if (ev.type === "msg" && ev.msg) addMsg(ev.msg, false);
+  else if (ev.type === "join") sys(t("joined", ev.nick, "#" + ev.room));
+  else if (ev.type === "part") sys(t("left", ev.nick, "#" + ev.room));
+  else if (ev.type === "nick") sys(t("nickChanged", ev.old, ev.nick));
+});
+
+/* ---------- language ---------- */
+function setLang(l) {
+  lang = TEXT[l] ? l : "en";
+  store.set(KEY.lang, lang);
+  document.documentElement.lang = lang;
+  $$("[data-lang]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === lang)));
+  $$("[data-t]").forEach(el => { el.textContent = t(el.dataset.t); });
+  $$("[data-t-aria]").forEach(el => el.setAttribute("aria-label", t(el.dataset.tAria)));
+  showHint("");
+  renderRings();
+  if (current) {
+    $("#chatTopic").textContent = ROOM[current].topic[lang];
+    msgInput.placeholder = t("placeholder", "#" + current);
+    updatePeople();
+  }
+  requestAnimationFrame(layoutSign);
+}
+$$("[data-lang]").forEach(b => b.addEventListener("click", () => setLang(b.dataset.lang)));
+
+/* keep the chat above the phone keyboard */
+if (window.visualViewport) {
+  const vv = window.visualViewport, root = document.documentElement.style;
+  const fit = () => { root.setProperty("--vvh", vv.height + "px"); root.setProperty("--vvt", vv.offsetTop + "px"); };
+  vv.addEventListener("resize", fit); vv.addEventListener("scroll", fit); fit();
+}
+
+addEventListener("hashchange", route);
+addEventListener("pagehide", () => { if (current) Live.announce({ type: "part", room: current, nick }); Live.stop(); });
+addEventListener("pageshow", e => { if (e.persisted) Live.presence(nick, current || "", true); });
+
+nickInput.value = nick;
+setLang(lang);
+Live.start(nick);
+route();
+if ("ResizeObserver" in window) new ResizeObserver(() => layoutSign()).observe(sign);
+if (document.fonts) document.fonts.ready.then(layoutSign);
+})();
+</script>
+</body>
+</html>
