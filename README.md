@@ -45,9 +45,11 @@
 
 ## Deploy
 
-`.github/workflows/deploy-worker.yml` — само ръчно (Actions → Deploy Worker → Run workflow).
-Трябва secret **`CLOUDFLARE_API_TOKEN`** в това репо (права Workers Scripts:Edit).
-След deploy-а проверява `/health` и `/api/rooms`.
+Сървърът се качва от репото **mvr-worker** — `deploy-circo.yml` (Actions → Deploy CIRCO → Run workflow),
+защото там е `CLOUDFLARE_API_TOKEN`. Същият начин като SOMBRA.
+Workflow-ът клонира CIRCO, проверява списъка с думи, качва с wrangler и записва
+`circo-deploy-report.txt` в mvr-worker с отговорите на `/health` и `/api/rooms`.
+Сайтът (`index.html`) се публикува сам през GitHub Pages.
 
 По желание: Worker secret `ADMIN_TOKEN` отключва `GET /api/admin/bans` и `POST /api/admin/unban`.
 
