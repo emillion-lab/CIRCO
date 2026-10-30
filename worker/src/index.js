@@ -9,8 +9,11 @@ const RULES = {
   strikesToBan: 3, strikeWindowMs: 3600e3,          // 3 rude messages within an hour
   reportsToBan: 3, reportWindowMs: 3600e3,          // 3 different people within an hour
   banLevelsMs: [3600e3, 24 * 3600e3, 7 * 24 * 3600e3], banMemoryMs: 30 * 24 * 3600e3,
-  roomIdleMs: 24 * 3600e3, maxCustomRooms: 60
+  roomIdleMs: 24 * 3600e3, maxCustomRooms: 60,
+  voiceMaxBytes: 700000, voiceMaxSec: 60, voiceGapMs: 4000
 };
+const SITE = "https://emillion-lab.github.io/CIRCO/";
+const VOICE_TYPES = ["audio/webm", "audio/ogg", "audio/mp4", "audio/mpeg", "audio/aac", "audio/x-m4a"];
 // official rooms; false = behind the curtain
 const OFFICIAL = { sofia: true, plovdiv: true, london: true, global: true, night: true, dating: false, confessions: false, random: true, music: true, tech: true };
 const ORIGINS = ["https://emillion-lab.github.io", "https://circo.chat", "https://www.circo.chat"];
@@ -57,6 +60,13 @@ export default {
         headers.set("x-ip", ip);
         return env.ROOM.get(env.ROOM.idFromName(m[1])).fetch(new Request(req, { headers }));
       }
+      const v = path.match(/^\/api\/room\/([a-z0-9-]{1,20})\/voice\/([a-f0-9]{16})$/);
+      if (v && req.method === "GET") {
+        const headers = new Headers({ "x-voice": v[2] });
+        return env.ROOM.get(env.ROOM.idFromName(v[1])).fetch(new Request(req.url, { headers }));
+      }
+      const share = path.match(/^\/r\/([a-z0-9-]{1,20})\/?$/);
+      if (share) return sharePage(share[1], await hub.roomInfo(share[1]));
       if (path.startsWith("/api/admin/")) {
         if (!env.ADMIN_TOKEN || req.headers.get("authorization") !== `Bearer ${env.ADMIN_TOKEN}`) return json({ error: "unauthorized" }, 401);
         if (path === "/api/admin/bans") return json(await hub.adminBans());
@@ -68,6 +78,24 @@ export default {
     }
   }
 };
+
+/* share link: a small page whose preview card names the room, then it opens the room */
+const escHtml = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+function sharePage(id, room) {
+  const target = room && room.open ? `${SITE}#${id}` : SITE;
+  const title = room ? `#${id} · cIRCo.chat` : "cIRCo.chat";
+  const desc = room && room.topic ? room.topic : "Всяка стая е различно шоу. Every room is a different show.";
+  const html = `<!doctype html><html lang="bg"><head><meta charset="utf-8"><title>${escHtml(title)}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta property="og:type" content="website"><meta property="og:site_name" content="cIRCo.chat">
+<meta property="og:title" content="${escHtml(title)}"><meta property="og:description" content="${escHtml(desc)}">
+<meta property="og:url" content="${escHtml(target)}"><meta name="twitter:card" content="summary">
+<meta name="description" content="${escHtml(desc)}"><meta name="theme-color" content="#120E1A">
+<meta http-equiv="refresh" content="0;url=${escHtml(target)}"></head>
+<body style="background:#120E1A;color:#F4E8CF;font-family:monospace;padding:24px"><a style="color:#FFD27A" href="${escHtml(target)}">${escHtml(title)}</a>
+<script>location.replace(${JSON.stringify(target)})</script></body></html>`;
+  return new Response(html, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "public, max-age=300" } });
+}
 
 export class Hub extends DurableObject {
   constructor(ctx, env) {
@@ -212,6 +240,7 @@ export class Room extends DurableObject {
     this.sql = ctx.storage.sql;
     this.sql.exec("CREATE TABLE IF NOT EXISTS msgs(id TEXT PRIMARY KEY, t INTEGER, nick TEXT, kind TEXT, text TEXT, rude INTEGER, author TEXT)");
     this.sql.exec("CREATE TABLE IF NOT EXISTS meta(k TEXT PRIMARY KEY, v TEXT)");
+    this.sql.exec("CREATE TABLE IF NOT EXISTS voices(id TEXT PRIMARY KEY, t INTEGER, mime TEXT, data BLOB)");
     // keep-alive pings are answered without waking the room
     ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair("ping", "pong"));
   }
@@ -229,9 +258,16 @@ export class Room extends DurableObject {
   prune() {
     this.sql.exec("DELETE FROM msgs WHERE t<?", Date.now() - RULES.historyMs);
     this.sql.exec("DELETE FROM msgs WHERE id NOT IN (SELECT id FROM msgs ORDER BY t DESC LIMIT ?)", RULES.maxHistory);
+    this.sql.exec("DELETE FROM voices WHERE id NOT IN (SELECT id FROM msgs)");
   }
 
   async fetch(req) {
+    const vid = req.headers.get("x-voice");
+    if (vid) {
+      const r = this.sql.exec("SELECT mime, data, t FROM voices WHERE id=?", vid).toArray()[0];
+      if (!r || r.t < Date.now() - RULES.historyMs) return new Response("gone", { status: 404 });
+      return new Response(r.data, { headers: { "content-type": r.mime, "cache-control": "public, max-age=86400, immutable", "access-control-allow-origin": "*" } });
+    }
     const url = new URL(req.url);
     const id = req.headers.get("x-room"), ip = req.headers.get("x-ip") || "127.0.0.1";
     if (id) this.sql.exec("INSERT INTO meta(k,v) VALUES('id',?) ON CONFLICT(k) DO UPDATE SET v=excluded.v", id);
@@ -262,10 +298,32 @@ export class Room extends DurableObject {
     if (m.type === "msg") return this.onMsg(ws, a, m);
     if (m.type === "nick") return this.onNick(ws, a, m);
     if (m.type === "report") return this.onReport(ws, a, m);
+    if (m.type === "voice") return this.onVoice(ws, a, m);
+  }
+
+  /* voice: base64 over the socket, kept 24 hours like text. Reports work on it like on any message. */
+  async onVoice(ws, a, m) {
+    const now = Date.now();
+    if (now - (a.lastVoice || 0) < RULES.voiceGapMs || now - a.last < RULES.minGapMs) return this.send(ws, { type: "error", code: "slow" });
+    const mime = String(m.mime || "").split(";")[0].trim().toLowerCase();
+    const dur = Math.round(Number(m.dur));
+    if (!VOICE_TYPES.includes(mime) || !(dur >= 1 && dur <= RULES.voiceMaxSec + 1) || typeof m.data !== "string") return this.send(ws, { type: "error", code: "voice_bad" });
+    let bytes;
+    try { const bin = atob(m.data); bytes = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i); } catch { return this.send(ws, { type: "error", code: "voice_bad" }); }
+    if (bytes.length < 200) return this.send(ws, { type: "error", code: "voice_bad" });
+    if (bytes.length > RULES.voiceMaxBytes) return this.send(ws, { type: "error", code: "voice_big" });
+    a.last = now; a.lastVoice = now;
+    ws.serializeAttachment(a);
+    const msg = { id: crypto.randomUUID().replace(/-/g, "").slice(0, 16), t: now, nick: a.nick, kind: "voice", text: String(Math.min(dur, RULES.voiceMaxSec)), rude: false };
+    this.sql.exec("INSERT INTO msgs(id,t,nick,kind,text,rude,author) VALUES(?,?,?,?,?,?,?)", msg.id, msg.t, msg.nick, msg.kind, msg.text, 0, JSON.stringify(a.keys));
+    this.sql.exec("INSERT INTO voices(id,t,mime,data) VALUES(?,?,?,?)", msg.id, now, mime, bytes.buffer);
+    this.broadcast({ type: "msg", msg });
+    const id = this.roomId();
+    if (id) await this.hub().touch(id);
   }
 
   async onMsg(ws, a, m) {
-    const kind = m.kind === "act" ? "act" : "msg";
+    const kind = m.kind === "act" ? "act" : "msg"; // "voice" only arrives through onVoice
     const text = String(m.text || "").trim().slice(0, RULES.maxLen);
     if (!text) return;
     const now = Date.now();
@@ -320,7 +378,7 @@ export class Room extends DurableObject {
   /* a ban: their messages leave the history, their sockets get the reason and close */
   async expel(devKey, nick, ban) {
     const ids = this.sql.exec("SELECT id, author FROM msgs").toArray().filter(r => { try { return JSON.parse(r.author)[0] === devKey; } catch { return false; } }).map(r => r.id);
-    for (const id of ids) this.sql.exec("DELETE FROM msgs WHERE id=?", id);
+    for (const id of ids) { this.sql.exec("DELETE FROM msgs WHERE id=?", id); this.sql.exec("DELETE FROM voices WHERE id=?", id); }
     for (const w of this.ctx.getWebSockets()) {
       const b = w.deserializeAttachment();
       if (!b || !b.ok || b.keys[0] !== devKey) continue;
