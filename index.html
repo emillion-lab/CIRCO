@@ -80,7 +80,7 @@ button{font:inherit;color:inherit}
 .room-topic{max-width:22ch;font-size:14px;line-height:1.4;color:var(--muted)}
 .room-meta{font-size:13px;color:var(--bulb)}
 .room-meta:empty{display:none}
-a.room:hover .room-name,a.room:focus-visible .room-name{color:var(--bulb)}
+.room:not(.closed):hover .room-name,.room:not(.closed):focus-visible .room-name{color:var(--bulb)}
 .room.closed .emblem{opacity:.5;filter:grayscale(.55)}
 .room.closed .room-name{color:var(--faint)}
 .room.closed .room-meta{color:var(--faint)}
@@ -89,7 +89,7 @@ a.room:hover .room-name,a.room:focus-visible .room-name{color:var(--bulb)}
 .emblem .ring-off{fill:none;stroke:var(--bulb-off);stroke-width:3.4;stroke-linecap:round}
 .emblem .ring-on{fill:none;stroke:var(--bulb);stroke-width:3.8;stroke-linecap:round;opacity:0;transform-box:fill-box;transform-origin:center;transition:opacity .25s}
 .room.live .ring-on{opacity:1}
-a.room:hover .ring-on,a.room:focus-visible .ring-on{opacity:1;animation:chase .9s steps(3) infinite}
+.room:not(.closed):hover .ring-on,.room:not(.closed):focus-visible .ring-on{opacity:1;animation:chase .9s steps(3) infinite}
 @keyframes chase{to{transform:rotate(45deg)}}
 
 .house{display:grid;grid-template-columns:180px minmax(0,1fr);gap:24px;margin-top:clamp(52px,8vw,88px);padding-top:26px;border-top:1px dashed var(--line);font-size:15px;color:var(--muted)}
@@ -125,7 +125,7 @@ a.room:hover .ring-on,a.room:focus-visible .ring-on{opacity:1;animation:chase .9
 .chat-here .s{display:none}
 
 .log{overflow-y:auto;overscroll-behavior:contain;padding:14px 18px 20px;font-size:16px;line-height:1.5}
-.line{display:grid;grid-template-columns:6ch 13ch minmax(0,1fr);column-gap:1ch;padding:1px 4px;border-radius:4px}
+.line{position:relative;display:grid;grid-template-columns:6ch 13ch minmax(0,1fr);column-gap:1ch;padding:1px 4px;border-radius:4px}
 .line time{color:var(--faint)}
 .line .who{overflow:hidden;font-weight:700;text-align:right;white-space:nowrap;text-overflow:ellipsis}
 .line .what{white-space:pre-wrap;overflow-wrap:anywhere}
@@ -146,6 +146,38 @@ a.room:hover .ring-on,a.room:focus-visible .ring-on{opacity:1;animation:chase .9
 .composer input{flex:1;min-width:0;padding:10px 4px;font:400 16px var(--mono);color:var(--paper);background:transparent;border:0;outline:0}
 .composer input::placeholder{color:var(--faint)}
 .composer button{flex:none;padding:9px 18px;font-weight:700;color:var(--night);background:var(--bulb);border:0;border-radius:999px;cursor:pointer}
+
+/* ---------- live rooms: new room, reports, rude text, dialogs ---------- */
+button.room{border:0;background:none;font:inherit;color:inherit;cursor:pointer}
+.new-room .room-name{color:var(--muted)}
+.rep{position:absolute;right:4px;top:1px;width:28px;height:24px;padding:0;border:0;border-radius:6px;background:none;color:var(--faint);font-size:14px;text-indent:0;cursor:pointer;opacity:0}
+.line:hover .rep,.rep:focus-visible{opacity:1}
+.rep:hover{color:var(--red)}
+.line.has-rep{padding-right:34px}
+.rude .what{filter:blur(5px);cursor:pointer;transition:filter .2s}
+.rude.shown .what{filter:none}
+.composer input:disabled{opacity:.6}
+.composer button:disabled{opacity:.4;cursor:default}
+dialog{width:min(440px,calc(100vw - 28px));padding:24px;border:1px solid var(--line);border-radius:22px;background:var(--night-2);color:var(--paper);box-shadow:0 40px 90px -30px #000}
+dialog::backdrop{background:rgba(9,7,13,.74);backdrop-filter:blur(5px)}
+dialog h2{margin:0 0 10px;font:700 20px/1.3 var(--mono)}
+dialog p{margin:0 0 12px;color:var(--muted)}
+dialog .rule{font-size:15px;color:var(--faint)}
+.field{display:flex;flex-direction:column;gap:6px;margin:16px 0 0;font-size:15px;color:var(--muted)}
+.field input{width:100%;min-width:0;padding:11px 12px;font:400 17px var(--mono);color:var(--paper);background:var(--night);border:1px solid var(--line);border-radius:12px;outline:0}
+.field input:focus{border-color:var(--bulb)}
+.field small{color:var(--faint);font-size:13px}
+.hash-input{display:flex;align-items:center;gap:6px;padding-left:12px;background:var(--night);border:1px solid var(--line);border-radius:12px}
+.hash-input:focus-within{border-color:var(--bulb)}
+.hash-input b{font:400 20px var(--display);color:var(--bulb)}
+.hash-input input{border:0;background:none;padding-left:0}
+.err{min-height:1.4em;margin:12px 0 0!important;color:var(--bad)!important;font-size:15px}
+.actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:10px;margin-top:18px}
+.btn{padding:10px 18px;font-weight:700;color:var(--paper);background:none;border:1px solid var(--line);border-radius:999px;cursor:pointer}
+.btn.primary{color:var(--night);background:var(--bulb);border-color:var(--bulb)}
+.btn.danger{color:#fff;background:#C8352B;border-color:#C8352B}
+.btn:disabled{opacity:.5;cursor:default}
+@media (hover:none){.rep{opacity:.55}}
 
 /* ---------- small screens ---------- */
 @media (max-width:1100px){.room-view{grid-template-columns:200px minmax(0,1fr)}.nicklist{display:none}}
@@ -200,7 +232,7 @@ a.room:hover .ring-on,a.room:focus-visible .ring-on{opacity:1;animation:chase .9
   <div class="rings" id="rings"></div>
   <footer class="house">
     <h2 data-t="rulesTitle"></h2>
-    <div><p data-t="rules"></p><p class="preview" data-t="preview"></p></div>
+    <div><p data-t="rules"></p><p class="preview" id="modeNote"></p></div>
   </footer>
 </main>
 
@@ -225,13 +257,29 @@ a.room:hover .ring-on,a.room:focus-visible .ring-on{opacity:1;animation:chase .9
   </div>
   <aside class="nicklist"><h3 id="peopleHead"></h3><ul id="people"></ul></aside>
 </section>
+<dialog id="ask" aria-labelledby="askTitle">
+  <h2 id="askTitle"></h2><p id="askBody"></p><p class="rule" id="askRule"></p>
+  <div class="actions"><button type="button" class="btn" id="askNo"></button><button type="button" class="btn danger" id="askYes"></button></div>
+</dialog>
+<dialog id="newRoom" aria-labelledby="newRoomTitle">
+  <form id="newRoomForm" novalidate>
+    <h2 id="newRoomTitle" data-t="newRoomTitle"></h2>
+    <p data-t="newRoomIntro"></p>
+    <label class="field"><span data-t="roomName"></span><span class="hash-input"><b>#</b><input id="roomName" maxlength="20" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></span><small data-t="roomNameHint"></small></label>
+    <label class="field"><span data-t="roomTopic"></span><input id="roomTopic" maxlength="80" autocomplete="off" data-t-ph="roomTopicPh"></label>
+    <p class="err" id="newRoomErr" aria-live="polite"></p>
+    <div class="actions"><button type="button" class="btn" id="newRoomCancel" data-t="cancel"></button><button type="submit" class="btn primary" id="newRoomOk" data-t="create"></button></div>
+  </form>
+</dialog>
 <noscript><p style="padding:24px">cIRCo.chat needs JavaScript to open the rooms.</p></noscript>
 
 <script>
 (() => {
 "use strict";
 
-const CONFIG = { historyHours: 24, maxPerRoom: 300, maxLen: 400, minGapMs: 600 };
+const CONFIG = { historyHours: 24, maxPerRoom: 300, maxLen: 400, minGapMs: 600, pollMs: 20000 };
+const QS = new URLSearchParams(location.search);
+const SERVER = (QS.get("server") || "https://circo.mihov-emil.workers.dev").replace(/\/+$/, "");
 const RESERVED = ["circo", "admin", "administrator", "mod", "moderator", "op", "root", "system", "server", "nickserv", "chanserv", "guest"];
 
 /* ---------- words ---------- */
@@ -244,6 +292,7 @@ const TEXT = {
     nickBad: "Use 2 to 16 Latin letters, digits, _ or -, starting with a letter.",
     nickReserved: "That nickname is reserved.",
     nickTaken: "Someone here already uses that nickname.",
+    rudeNick: "That nickname has a rude word in it.",
     soon: "Opens soon",
     hereShort: n => `${n} here`,
     hereLong: n => n === 1 ? "1 person here now" : `${n} people here now`,
@@ -252,6 +301,7 @@ const TEXT = {
     rulesTitle: "House rules",
     rules: "Be kind and don't spam. Don't pretend to be someone else. Every message disappears after 24 hours.",
     preview: "This is a preview: messages stay on this device until the live rooms open.",
+    liveRules: (s, r) => `Rude words: you're asked before the message goes out. ${s} strikes within an hour, or reports from ${r} different people, mean an automatic ban: 1 hour, then 24 hours, then 7 days.`,
     back: "All rooms",
     send: "Send",
     placeholder: r => `Message ${r}`,
@@ -262,12 +312,52 @@ const TEXT = {
     joined: (n, r) => `${n} has joined ${r}`,
     left: (n, r) => `${n} has left ${r}`,
     nickChanged: (a, b) => `${a} is now known as ${b}`,
+    nickInUse: (a, b) => `${a} is taken here, so you're ${b} for now.`,
     dayChanged: d => `Day changed to ${d}`,
-    help: ["/nick name   change your nickname", "/me text     describe what you're doing", "/join #room  go to another room", "/part        leave this room", "/topic       show the topic", "/clear       clear your screen"],
+    help: ["/nick name    change your nickname", "/me text      describe what you're doing", "/join #room   go to another room", "/part         leave this room", "/report nick  report their last message", "/topic        show the topic", "/clear        clear your screen"],
     unknownCmd: c => `Unknown command ${c}. Type /help.`,
     slowDown: "Slow down a little.",
     noSuchRoom: r => `There's no room called ${r}.`,
-    roomClosed: r => `${r} opens soon.`
+    roomClosed: r => `${r} opens soon.`,
+    ringPeople: "Rooms by people",
+    newRoom: "New room",
+    newRoomHint: "Open your own",
+    newRoomTitle: "Open a new room",
+    newRoomIntro: "It closes on its own after 24 quiet hours.",
+    roomName: "Name",
+    roomNameHint: "3 to 20 small Latin letters, digits or dashes",
+    roomTopic: "Topic",
+    roomTopicPh: "What is this room about?",
+    create: "Open the room",
+    cancel: "Cancel",
+    errTaken: "That room already exists.",
+    errRude: "The name or the topic has a rude word in it.",
+    errBanned: u => `You're banned until ${u}.`,
+    errTooMany: "You can open one room every 6 hours.",
+    errFull: "Too many rooms are open right now. Try again later.",
+    errServer: "The server didn't answer. Try again.",
+    quote: w => `"${w}"`,
+    rudeTitle: "Send it anyway?",
+    rudeBody: w => `There's a rude word in your message: ${w}.`,
+    rudeRule: (s, l) => `If you send it, that's strike ${s + 1} of ${l} this hour. At ${l} you're banned automatically.`,
+    sendAnyway: "Send anyway",
+    edit: "Edit message",
+    blocked: w => `Not sent: ${w} isn't allowed here.`,
+    strikeInfo: (s, l) => `Strike ${s} of ${l} this hour.`,
+    banned: (u, why) => `You're banned until ${u} ${why}.`,
+    why: { language: "for rude language", slur: "for slurs", reports: "after reports from other people" },
+    bannedShort: u => `Banned until ${u}`,
+    wasBanned: n => `${n} was banned. Their messages were removed.`,
+    reportTitle: n => `Report ${n}?`,
+    reportBody: l => `If ${l} different people report the same person within an hour, that person is banned automatically.`,
+    report: "Report",
+    reported: n => `Thanks. Your report about ${n} is in.`,
+    selfReport: "You can't report yourself.",
+    noMsgFrom: n => `There's no recent message from ${n}.`,
+    reportPreview: "Reports work in the live rooms.",
+    rudeHidden: "Rude text. Tap to see it.",
+    reconnecting: "Connection lost. Reconnecting…",
+    notConnected: "Not connected yet."
   },
   bg: {
     tagline: "Всяка стая е различно шоу.",
@@ -277,6 +367,7 @@ const TEXT = {
     nickBad: "От 2 до 16 латински букви, цифри, _ или -, като първият знак е буква.",
     nickReserved: "Този ник е запазен.",
     nickTaken: "Някой тук вече ползва този ник.",
+    rudeNick: "В този ник има груба дума.",
     soon: "Отваря скоро",
     hereShort: n => `${n} тук`,
     hereLong: n => n === 1 ? "1 човек тук сега" : `${n} души тук сега`,
@@ -285,6 +376,7 @@ const TEXT = {
     rulesTitle: "Правила",
     rules: "Без грубости и без спам. Не се представяй за някой друг. Всяко съобщение изчезва след 24 часа.",
     preview: "Това е предварителна версия: съобщенията остават на това устройство, докато отворят живите стаи.",
+    liveRules: (s, r) => `Груби думи: питаме те, преди съобщението да тръгне. ${s} нарушения за час или доклади от ${r} различни души водят до автоматичен бан: 1 час, после 24 часа, после 7 дни.`,
     back: "Всички стаи",
     send: "Прати",
     placeholder: r => `Съобщение до ${r}`,
@@ -295,22 +387,63 @@ const TEXT = {
     joined: (n, r) => `${n} влезе в ${r}`,
     left: (n, r) => `${n} излезе от ${r}`,
     nickChanged: (a, b) => `${a} вече е ${b}`,
+    nickInUse: (a, b) => `${a} е зает тук, затова засега си ${b}.`,
     dayChanged: d => `Нов ден: ${d}`,
-    help: ["/nick име    смени ника си", "/me текст    опиши какво правиш", "/join #стая  отиди в друга стая", "/part        излез от стаята", "/topic       покажи темата", "/clear       изчисти екрана"],
+    help: ["/nick име     смени ника си", "/me текст     опиши какво правиш", "/join #стая   отиди в друга стая", "/part         излез от стаята", "/report ник   докладвай последното му съобщение", "/topic        покажи темата", "/clear        изчисти екрана"],
     unknownCmd: c => `Непозната команда ${c}. Напиши /help.`,
     slowDown: "Малко по-бавно.",
     noSuchRoom: r => `Няма стая ${r}.`,
-    roomClosed: r => `${r} отваря скоро.`
+    roomClosed: r => `${r} отваря скоро.`,
+    ringPeople: "Стаи на хората",
+    newRoom: "Нова стая",
+    newRoomHint: "Отвори своя",
+    newRoomTitle: "Нова стая",
+    newRoomIntro: "Затваря се сама след 24 часа тишина.",
+    roomName: "Име",
+    roomNameHint: "3 до 20 малки латински букви, цифри или тире",
+    roomTopic: "Тема",
+    roomTopicPh: "За какво е тази стая?",
+    create: "Отвори стаята",
+    cancel: "Отказ",
+    errTaken: "Такава стая вече има.",
+    errRude: "В името или темата има груба дума.",
+    errBanned: u => `Имаш бан до ${u}.`,
+    errTooMany: "Можеш да отваряш по една стая на 6 часа.",
+    errFull: "В момента има твърде много стаи. Опитай по-късно.",
+    errServer: "Сървърът не отговори. Опитай пак.",
+    quote: w => `„${w}“`,
+    rudeTitle: "Да го пратя ли?",
+    rudeBody: w => `В съобщението има груба дума: ${w}.`,
+    rudeRule: (s, l) => `Ако го пратиш, това е нарушение ${s + 1} от ${l} за този час. При ${l} следва автоматичен бан.`,
+    sendAnyway: "Прати все пак",
+    edit: "Поправи",
+    blocked: w => `Не е изпратено: ${w} не е позволено тук.`,
+    strikeInfo: (s, l) => `Нарушение ${s} от ${l} за този час.`,
+    banned: (u, why) => `Имаш бан до ${u} ${why}.`,
+    why: { language: "заради груб език", slur: "заради обидни думи", reports: "след доклади от други хора" },
+    bannedShort: u => `Бан до ${u}`,
+    wasBanned: n => `${n} получи бан. Съобщенията от ${n} са махнати.`,
+    reportTitle: n => `Да докладвам ли ${n}?`,
+    reportBody: l => `Ако ${l} различни души докладват един и същ човек в рамките на час, той получава автоматичен бан.`,
+    report: "Докладвай",
+    reported: n => `Благодаря. Докладът за ${n} е приет.`,
+    selfReport: "Не можеш да докладваш себе си.",
+    noMsgFrom: n => `Няма скорошно съобщение от ${n}.`,
+    reportPreview: "Докладите работят в живите стаи.",
+    rudeHidden: "Груб текст. Натисни, за да го видиш.",
+    reconnecting: "Връзката прекъсна. Свързвам отново…",
+    notConnected: "Още няма връзка."
   }
 };
 
 const RINGS = [
   { id: "cities", name: { en: "Cities", bg: "Градове" } },
   { id: "night", name: { en: "After dark", bg: "Нощем" } },
-  { id: "fun", name: { en: "Just for fun", bg: "За забавление" } }
+  { id: "fun", name: { en: "Just for fun", bg: "За забавление" } },
+  { id: "people", live: true, name: { en: "Rooms by people", bg: "Стаи на хората" } }
 ];
 
-/* open:false keeps a room behind the curtain until moderation is ready */
+/* official rooms; open:false keeps a room behind the curtain until moderation is ready */
 const ROOMS = [
   { id: "sofia", ring: "cities", open: true, dot: "#F0483E", topic: { en: "The city, the traffic and everything in between", bg: "Градът, задръстванията и всичко между тях" } },
   { id: "plovdiv", ring: "cities", open: true, dot: "#EE8A2A", topic: { en: "Old town, new conversations", bg: "Стар град, нови разговори" } },
@@ -323,7 +456,10 @@ const ROOMS = [
   { id: "music", ring: "fun", open: true, dot: "#E8B33C", topic: { en: "What are you listening to?", bg: "Какво слушаш?" } },
   { id: "tech", ring: "fun", open: true, dot: "#3FC1C9", topic: { en: "Gadgets, code and old computers", bg: "Джаджи, код и стари компютри" } }
 ];
-const ROOM = Object.fromEntries(ROOMS.map(r => [r.id, r]));
+const OFFICIAL = Object.fromEntries(ROOMS.map(r => [r.id, r]));
+let rooms = ROOMS.map(r => ({ ...r, people: 0 }));
+const roomById = id => rooms.find(r => r.id === id);
+const topicOf = r => !r ? "" : typeof r.topic === "string" ? r.topic : (r.topic[lang] || r.topic.en);
 
 /* ---------- emblems: one round badge per room, a ring of bulbs around each ---------- */
 const CREAM = "#F4E8CF";
@@ -372,11 +508,14 @@ const ICONS = {
     `<path d="M38 40l5 4-5 4" fill="none" stroke="${CREAM}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><rect x="46" y="46.5" width="7" height="2.5" fill="${CREAM}"/>` +
     `<rect x="45" y="62" width="10" height="5" fill="#0F2A4A"/><rect x="36" y="67" width="28" height="4" rx="2" fill="#0F2A4A"/>`
 };
+/* rooms by people: their colour and the first letter of the name, in the poster face */
+const lettered = r => disc(r.color || "#5A3FC9") + `<text x="50" y="65" text-anchor="middle" font-family="Rye, Georgia, serif" font-size="42" fill="${CREAM}">${r.id[0].toUpperCase()}</text>`;
+const NEW_ICON = `<circle cx="50" cy="50" r="39" fill="none" stroke="#4A3B5E" stroke-width="2" stroke-dasharray="5 6"/><path d="M50 36v28M36 50h28" stroke="${CREAM}" stroke-width="4" stroke-linecap="round"/>`;
 const RING_R = 46.5, RING_SP = 2 * Math.PI * RING_R / 24;
-const emblem = id => `<svg class="emblem" viewBox="0 0 100 100" aria-hidden="true" focusable="false">` +
+const emblem = r => `<svg class="emblem" viewBox="0 0 100 100" aria-hidden="true" focusable="false">` +
   `<circle class="ring-off" cx="50" cy="50" r="${RING_R}" stroke-dasharray="0 ${RING_SP.toFixed(3)}"/>` +
   `<circle class="ring-on" cx="50" cy="50" r="${RING_R}" stroke-dasharray="0 ${(RING_SP * 3).toFixed(3)}" filter="url(#glow)"/>` +
-  ICONS[id] + `</svg>`;
+  (r === "new" ? NEW_ICON : ICONS[r.id] || lettered(r)) + `</svg>`;
 
 /* ---------- small helpers ---------- */
 const $ = (s, el = document) => el.querySelector(s);
@@ -386,7 +525,7 @@ const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
 };
-const KEY = { nick: "circo:nick", lang: "circo:lang", log: id => "circo:v1:log:" + id };
+const KEY = { nick: "circo:nick", lang: "circo:lang", device: "circo:device", log: id => "circo:v1:log:" + id };
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
 const pad = n => String(n).padStart(2, "0");
 const hhmm = ts => { const d = new Date(ts); return pad(d.getHours()) + ":" + pad(d.getMinutes()); };
@@ -394,14 +533,21 @@ const dayKey = ts => new Date(ts).toDateString();
 const NICK_COLORS = ["#FF6B5E", "#FF9F43", "#FFD447", "#7BD88F", "#3FC1C9", "#8BE9FD", "#7AA2FF", "#FF79C6", "#C792EA", "#E3C9A0"];
 const nickColor = n => { let h = 0x811c9dc5; for (const ch of n.toLowerCase()) { h ^= ch.charCodeAt(0); h = Math.imul(h, 0x01000193) >>> 0; } return NICK_COLORS[h % NICK_COLORS.length]; };
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const DEVICE = (() => { let d = store.get(KEY.device, ""); if (!/^[A-Za-z0-9-]{8,48}$/.test(d)) { d = crypto.randomUUID ? crypto.randomUUID() : uid() + uid(); store.set(KEY.device, d); } return d; })();
 
 let lang = store.get(KEY.lang, null) || ((navigator.language || "").toLowerCase().startsWith("bg") ? "bg" : "en");
 const t = (k, ...a) => { const v = TEXT[lang][k] ?? TEXT.en[k]; return typeof v === "function" ? v(...a) : v; };
+const until = ts => {
+  const d = new Date(ts);
+  return d.toDateString() === new Date().toDateString() ? hhmm(ts) : d.toLocaleDateString(lang === "bg" ? "bg-BG" : "en-GB", { day: "numeric", month: "short" }) + " " + hhmm(ts);
+};
 
-/* ---------- the wire ----------
-   Preview transport: history in localStorage, live events between tabs of this browser.
-   A server transport (WebSocket) only has to offer the same methods. */
-const Live = (() => {
+/* live = the cIRCo server answered; otherwise the page runs as a preview on this device */
+let live = false;
+let rules = { strikesToBan: 3, reportsToBan: 3 };
+
+/* ---------- preview transport: history in localStorage, events between tabs of this browser ---------- */
+const Local = (() => {
   const tab = uid();
   const bc = "BroadcastChannel" in window ? new BroadcastChannel("circo-v1") : null;
   const peers = new Map(), subs = new Set(), TTL = 90e3;
@@ -431,6 +577,41 @@ const Live = (() => {
   return api;
 })();
 
+/* ---------- live transport: one WebSocket to the room you're in ---------- */
+const Net = {
+  ws: null, room: null, want: false, tries: 0, timer: 0, ping: 0, nickTries: 0,
+  open(room) {
+    this.close();
+    this.room = room;
+    this.want = true;
+    const url = SERVER.replace(/^http/, "ws") + `/api/room/${encodeURIComponent(room)}/ws?nick=${encodeURIComponent(nick)}&device=${encodeURIComponent(DEVICE)}`;
+    let ws;
+    try { ws = new WebSocket(url); } catch { return this.retry(); }
+    this.ws = ws;
+    ws.onopen = () => { this.tries = 0; clearInterval(this.ping); this.ping = setInterval(() => { try { ws.send("ping"); } catch {} }, 30000); };
+    ws.onmessage = e => { if (e.data === "pong") return; let m; try { m = JSON.parse(e.data); } catch { return; } onServer(m); };
+    ws.onclose = () => { if (this.ws !== ws) return; this.ws = null; clearInterval(this.ping); if (this.want) this.retry(); };
+  },
+  retry() {
+    if (!this.want) return;
+    const wait = [1000, 2000, 5000, 10000, 20000][Math.min(this.tries++, 4)];
+    if (this.tries === 1) sys(t("reconnecting"));
+    clearTimeout(this.timer);
+    this.timer = setTimeout(() => { if (this.want && current === this.room) this.open(this.room); }, wait);
+  },
+  close() {
+    this.want = false;
+    clearTimeout(this.timer);
+    clearInterval(this.ping);
+    if (this.ws) { const w = this.ws; this.ws = null; try { w.close(1000); } catch {} }
+  },
+  send(obj) {
+    if (this.ws && this.ws.readyState === 1) { this.ws.send(JSON.stringify(obj)); return true; }
+    notice(t("notConnected"));
+    return false;
+  }
+};
+
 /* ---------- nickname ---------- */
 const NICK_RE = /^[A-Za-z][A-Za-z0-9_-]{1,15}$/;
 let nick = store.get(KEY.nick, "");
@@ -438,20 +619,31 @@ if (!NICK_RE.test(nick || "")) { nick = "Guest" + (1000 + Math.floor(Math.random
 const nickError = v => {
   if (!NICK_RE.test(v)) return t("nickBad");
   if (RESERVED.includes(v.toLowerCase()) && v.toLowerCase() !== nick.toLowerCase()) return t("nickReserved");
-  if (v.toLowerCase() !== nick.toLowerCase() && Live.taken(v)) return t("nickTaken");
+  if (!live && v.toLowerCase() !== nick.toLowerCase() && Local.taken(v)) return t("nickTaken");
   return "";
 };
+function useNick(v) {
+  nick = v;
+  store.set(KEY.nick, nick);
+  if (nickInput.value !== nick) nickInput.value = nick;
+  paintPrompt();
+}
 function setNick(v, fromChat) {
   v = (v || "").trim();
   if (v === nick) return true;
   const err = nickError(v);
   if (err) { if (fromChat) notice(err); return false; }
+  if (live && current) {
+    // the room decides; the change lands when it answers with a "nick" event
+    if (Net.ws && Net.ws.readyState === 1) Net.send({ type: "nick", nick: v });
+    else { useNick(v); Net.open(current); }
+    return true;
+  }
   const old = nick;
-  nick = v; store.set(KEY.nick, nick);
-  if (current) { sys(t("nickChanged", old, nick)); Live.announce({ type: "nick", room: current, old, nick }); }
-  Live.presence(nick, current || "");
-  if (nickInput.value !== nick) nickInput.value = nick;
-  paintPrompt(); updatePeople();
+  useNick(v);
+  if (current) { sys(t("nickChanged", old, nick)); Local.announce({ type: "nick", room: current, old, nick }); }
+  Local.presence(nick, current || "");
+  updatePeople();
   return true;
 }
 
@@ -468,22 +660,57 @@ nickInput.addEventListener("input", () => {
 nickInput.addEventListener("blur", () => { if (nickInput.value.trim() !== nick) { nickInput.value = nick; showHint(""); } });
 nickInput.addEventListener("keydown", e => { if (e.key === "Enter") nickInput.blur(); });
 
+const countOf = id => live ? (roomById(id)?.people || 0) : Local.count(id);
+function card(r) {
+  const inner = emblem(r) + `<span class="room-text"><span class="room-name">#${esc(r.id)}</span><span class="room-topic">${esc(topicOf(r))}</span><span class="room-meta">${r.open ? "" : esc(t("soon"))}</span></span>`;
+  return r.open ? `<a class="room" href="#${esc(r.id)}" data-room="${esc(r.id)}">${inner}</a>` : `<div class="room closed">${inner}</div>`;
+}
 function renderRings() {
-  $("#rings").innerHTML = RINGS.map(g =>
-    `<section class="ring"><h2>${esc(g.name[lang])}</h2><div class="ring-rooms">` +
-    ROOMS.filter(r => r.ring === g.id).map(r => {
-      const inner = emblem(r.id) + `<span class="room-text"><span class="room-name">#${r.id}</span><span class="room-topic">${esc(r.topic[lang])}</span><span class="room-meta">${r.open ? "" : esc(t("soon"))}</span></span>`;
-      return r.open ? `<a class="room" href="#${r.id}" data-room="${r.id}">${inner}</a>` : `<div class="room closed">${inner}</div>`;
-    }).join("") + `</div></section>`).join("");
+  $("#rings").innerHTML = RINGS.filter(g => live || !g.live).map(g => {
+    let items = rooms.filter(r => r.ring === g.id).map(card).join("");
+    if (g.id === "people") items = `<button type="button" class="room new-room" id="newRoomBtn">${emblem("new")}<span class="room-text"><span class="room-name">${esc(t("newRoom"))}</span><span class="room-topic">${esc(t("newRoomHint"))}</span></span></button>` + items;
+    return `<section class="ring"><h2>${esc(g.name[lang])}</h2><div class="ring-rooms">${items}</div></section>`;
+  }).join("");
   updateCounts();
 }
 function updateCounts() {
   $$("#rings .room[data-room]").forEach(a => {
-    const n = Live.count(a.dataset.room);
+    const n = countOf(a.dataset.room);
     a.classList.toggle("live", n > 0);
     $(".room-meta", a).textContent = n ? t("hereShort", n) : "";
   });
   if (current) renderChanlist();
+}
+function setModeTexts() {
+  $("#modeNote").textContent = live ? t("liveRules", rules.strikesToBan, rules.reportsToBan) : t("preview");
+}
+
+/* the server's room list: official rooms keep their emblems, people's rooms get a lettered badge */
+function mergeServer(list) {
+  rooms = list.map(s => {
+    const o = OFFICIAL[s.id];
+    return o ? { ...o, open: !!s.open, people: s.people || 0 } : { id: s.id, ring: "people", open: true, dot: s.color, color: s.color, topic: s.topic || "", people: s.people || 0 };
+  });
+}
+async function refreshRooms(first) {
+  try {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), first ? 4000 : 8000);
+    const res = await fetch(SERVER + "/api/rooms", { signal: ctl.signal, cache: "no-store" });
+    clearTimeout(timer);
+    if (!res.ok) throw new Error(res.status);
+    const data = await res.json();
+    if (!Array.isArray(data.rooms)) throw new Error("shape");
+    if (data.rules) rules = data.rules;
+    live = true;
+    mergeServer(data.rooms);
+  } catch {
+    if (first) live = false;
+  }
+  document.body.classList.toggle("is-live", live);
+  setModeTexts();
+  renderRings();
+  return live;
 }
 
 /* the marquee: bulbs follow the sign's edge; every third one goes dark and the gap runs clockwise */
@@ -508,21 +735,90 @@ function layoutSign() {
   }
 }
 
+/* ---------- new room ---------- */
+const newDlg = $("#newRoom"), roomName = $("#roomName"), roomTopic = $("#roomTopic"), newErr = $("#newRoomErr"), newOk = $("#newRoomOk");
+$("#rings").addEventListener("click", e => {
+  if (!e.target.closest("#newRoomBtn")) return;
+  roomName.value = ""; roomTopic.value = ""; newErr.textContent = "";
+  newDlg.showModal();
+  roomName.focus();
+});
+$("#newRoomCancel").addEventListener("click", () => newDlg.close());
+roomName.addEventListener("input", () => { const v = roomName.value.toLowerCase().replace(/[\s_]+/g, "-").replace(/[^a-z0-9-]/g, "").replace(/-{2,}/g, "-").slice(0, 20); if (v !== roomName.value) roomName.value = v; newErr.textContent = ""; });
+$("#newRoomForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const name = roomName.value.trim(), topic = roomTopic.value.trim();
+  if (!/^[a-z0-9][a-z0-9-]{2,19}$/.test(name)) { newErr.textContent = t("roomNameHint"); return roomName.focus(); }
+  newOk.disabled = true;
+  try {
+    const res = await fetch(SERVER + "/api/rooms", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name, topic, device: DEVICE }) });
+    const data = await res.json();
+    if (data.error) {
+      newErr.textContent = { bad_name: t("roomNameHint"), taken: t("errTaken"), rude: t("errRude"), banned: t("errBanned", until(data.until)), too_many: t("errTooMany"), full: t("errFull") }[data.error] || t("errServer");
+      return;
+    }
+    const r = data.room;
+    if (!roomById(r.id)) rooms.push({ id: r.id, ring: "people", open: true, dot: r.color, color: r.color, topic: r.topic, people: 0 });
+    newDlg.close();
+    renderRings();
+    location.hash = r.id;
+  } catch {
+    newErr.textContent = t("errServer");
+  } finally {
+    newOk.disabled = false;
+  }
+});
+
+/* ---------- asking before something happens ---------- */
+const askDlg = $("#ask");
+function ask(o) {
+  $("#askTitle").textContent = o.title;
+  $("#askBody").textContent = o.body;
+  $("#askRule").textContent = o.rule || "";
+  $("#askYes").textContent = o.yes;
+  $("#askNo").textContent = o.no;
+  return new Promise(resolve => {
+    const done = v => { askDlg.close(); resolve(v); };
+    $("#askYes").onclick = () => done(true);
+    $("#askNo").onclick = () => done(false);
+    askDlg.oncancel = e => { e.preventDefault(); done(false); };
+    askDlg.showModal();
+    $("#askNo").focus();
+  });
+}
+async function askRude(m) {
+  const yes = await ask({
+    title: t("rudeTitle"),
+    body: t("rudeBody", (m.words || []).map(w => t("quote", w)).join(", ")),
+    rule: t("rudeRule", m.strikes || 0, m.limit || rules.strikesToBan),
+    yes: t("sendAnyway"), no: t("edit")
+  });
+  if (yes) Net.send({ type: "msg", kind: m.kind, text: m.text, confirmed: true });
+  else { msgInput.value = (m.kind === "act" ? "/me " : "") + m.text; msgInput.focus(); }
+}
+async function report(id, who) {
+  const yes = await ask({ title: t("reportTitle", who), body: t("reportBody", rules.reportsToBan), yes: t("report"), no: t("cancel") });
+  if (yes) Net.send({ type: "report", id });
+}
+
 /* ---------- room ---------- */
-let current = null, lastDay = null, lastSent = 0;
-const log = $("#log"), msgInput = $("#msgInput");
+let current = null, lastDay = null, lastSent = 0, livePeople = [];
+const log = $("#log"), msgInput = $("#msgInput"), sendBtn = $("#composer button");
 const sent = []; let sentPos = 0;
 
 function renderChanlist() {
-  $("#chanlist").innerHTML = RINGS.map(g => `<h3>${esc(g.name[lang])}</h3>` +
-    ROOMS.filter(r => r.ring === g.id && r.open).map(r => {
-      const n = Live.count(r.id);
-      return `<a class="chan" href="#${r.id}" style="--c:${r.dot}"${r.id === current ? ' aria-current="page"' : ""}><i></i>#${r.id}${n ? `<span class="n">${n}</span>` : ""}</a>`;
-    }).join("")).join("");
+  $("#chanlist").innerHTML = RINGS.filter(g => live || !g.live).map(g => {
+    const list = rooms.filter(r => r.ring === g.id && r.open);
+    if (!list.length) return "";
+    return `<h3>${esc(g.name[lang])}</h3>` + list.map(r => {
+      const n = countOf(r.id);
+      return `<a class="chan" href="#${esc(r.id)}" style="--c:${esc(r.dot || "#8B6CF0")}"${r.id === current ? ' aria-current="page"' : ""}><i></i>#${esc(r.id)}${n ? `<span class="n">${n}</span>` : ""}</a>`;
+    }).join("");
+  }).join("");
 }
 function updatePeople() {
   if (!current) return;
-  const people = Live.people(current).sort((a, b) => a.localeCompare(b));
+  const people = (live ? livePeople : Local.people(current)).slice().sort((a, b) => a.localeCompare(b));
   $("#chatHere").innerHTML = `<span class="l">${esc(t("hereLong", people.length))}</span><span class="s">${esc(t("hereShort", people.length))}</span>`;
   $("#peopleHead").textContent = `${t("peopleHead")} (${people.length})`;
   $("#people").innerHTML = `<li class="op">@cIRCo</li>` + people.map(p => `<li style="color:${nickColor(p)}">${esc(p)}</li>`).join("");
@@ -531,6 +827,11 @@ function paintPrompt() {
   const p = $("#prompt");
   p.textContent = nick;
   p.style.color = nickColor(nick);
+}
+function setComposer(on, placeholder) {
+  msgInput.disabled = !on;
+  sendBtn.disabled = !on;
+  msgInput.placeholder = placeholder || t("placeholder", "#" + current);
 }
 
 const nearBottom = () => log.scrollHeight - log.scrollTop - log.clientHeight < 80;
@@ -568,52 +869,154 @@ const notice = text => { const ts = Date.now(); push(line("notice", ts, "-cIRCo-
 const mentions = text => new RegExp(`(?:^|[^\\w-])${nick}(?![\\w-])`, "i").test(text);
 function addMsg(m, mine) {
   if (!m || typeof m.text !== "string" || typeof m.nick !== "string" || typeof m.t !== "number") return;
+  if (mine == null) mine = m.nick === nick;
   const el = m.kind === "act" ? line("act", m.t, "*", null, `${m.nick} ${m.text}`) : line("msg", m.t, m.nick, nickColor(m.nick), m.text);
-  if (!mine && m.nick !== nick && mentions(m.text)) el.classList.add("mention");
+  if (m.id) { el.dataset.id = m.id; el.dataset.nick = m.nick; }
+  if (!mine && mentions(m.text)) el.classList.add("mention");
+  if (m.rude && !mine) { el.classList.add("rude"); $(".what", el).title = t("rudeHidden"); }
+  if (live && m.id && !mine) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "rep";
+    b.textContent = "⚑";
+    b.title = t("report");
+    b.setAttribute("aria-label", `${t("report")} ${m.nick}`);
+    el.classList.add("has-rep");
+    el.append(b);
+  }
   push(el, m.t, mine);
 }
+log.addEventListener("click", e => {
+  const rep = e.target.closest(".rep");
+  if (rep) { const l = rep.closest(".line"); return report(l.dataset.id, l.dataset.nick); }
+  const rude = e.target.closest(".rude");
+  if (rude) rude.classList.toggle("shown");
+});
 function say(kind, text) {
   const msg = { id: uid(), t: Date.now(), nick, kind, text: text.slice(0, CONFIG.maxLen) };
-  Live.send(current, msg);
+  Local.send(current, msg);
   addMsg(msg, true);
 }
 
+/* everything the server can tell the room */
+function onServer(m) {
+  switch (m.type) {
+    case "hello":
+      Net.nickTries = 0;
+      rules = m.rules || rules;
+      log.innerHTML = "";
+      lastDay = null;
+      (m.history || []).forEach(x => addMsg(x));
+      sys(t("nowTalking", "#" + current));
+      sys(t("topicIs", topicOf(roomById(current))));
+      notice(t("welcome", nick));
+      livePeople = m.people || [];
+      updatePeople();
+      setComposer(true);
+      log.scrollTop = log.scrollHeight;
+      break;
+    case "msg": addMsg(m.msg); break;
+    case "join": sys(t("joined", m.nick, "#" + current)); break;
+    case "part": sys(t("left", m.nick, "#" + current)); break;
+    case "nick":
+      if (m.old === nick) useNick(m.nick);
+      sys(t("nickChanged", m.old, m.nick));
+      break;
+    case "people": {
+      livePeople = m.people || [];
+      const r = roomById(current);
+      if (r) r.people = livePeople.length;
+      updatePeople();
+      renderChanlist();
+      break;
+    }
+    case "confirm": askRude(m); break;
+    case "strike": notice(t("strikeInfo", m.strikes, m.limit)); break;
+    case "blocked":
+      notice(t("blocked", (m.words || []).map(w => t("quote", w)).join(", ")));
+      notice(t("strikeInfo", m.strikes, m.limit));
+      break;
+    case "banned":
+      Net.want = false;
+      notice(t("banned", until(m.until), t("why")[m.reason] || ""));
+      setComposer(false, t("bannedShort", until(m.until)));
+      break;
+    case "expelled":
+      (m.ids || []).forEach(id => { const el = log.querySelector(`[data-id="${CSS.escape(id)}"]`); if (el) el.remove(); });
+      if (m.nick !== nick) sys(t("wasBanned", m.nick));
+      break;
+    case "reported": notice(t("reported", m.nick)); break;
+    case "refused":
+      Net.want = false;
+      if (m.code === "nick_taken" && Net.nickTries < 3) {
+        Net.nickTries++;
+        const alt = nick.length < 16 ? nick + "_" : nick.slice(0, 15) + Math.floor(Math.random() * 10);
+        notice(t("nickInUse", nick, alt));
+        nick = alt;
+        paintPrompt();
+        setTimeout(() => { if (current) Net.open(current); }, 250);
+      } else if (m.code === "banned") {
+        notice(t("banned", until(m.until), t("why")[m.reason] || ""));
+        setComposer(false, t("bannedShort", until(m.until)));
+      } else {
+        notice(m.code === "rude_nick" ? t("rudeNick") : m.code === "nick_taken" ? t("nickTaken") : t("nickBad"));
+      }
+      break;
+    case "error":
+      notice({ slow: t("slowDown"), nick_taken: t("nickTaken"), bad_nick: t("nickBad"), rude_nick: t("rudeNick"), self_report: t("selfReport") }[m.code] || "");
+      break;
+  }
+}
+
 function enterRoom(id) {
-  const r = ROOM[id];
-  if (current === id) return;
-  if (current) Live.announce({ type: "part", room: current, nick });
+  const r = roomById(id);
+  if (!r || current === id) return;
+  leaveRoom();
   current = id;
   $("#lobby").hidden = true;
   $("#room").hidden = false;
-  $("#chatEmblem").innerHTML = emblem(id);
+  $("#chatEmblem").innerHTML = emblem(r);
   $("#chatName").textContent = "#" + id;
-  $("#chatTopic").textContent = r.topic[lang];
-  msgInput.placeholder = t("placeholder", "#" + id);
+  $("#chatTopic").textContent = topicOf(r);
   document.title = `#${id} · cIRCo.chat`;
   log.innerHTML = "";
   lastDay = null;
-  Live.history(id).forEach(m => addMsg(m, m.nick === nick));
-  sys(t("nowTalking", "#" + id));
-  sys(t("topicIs", r.topic[lang]));
-  notice(t("welcome", nick));
-  notice(t("previewNotice"));
-  log.scrollTop = log.scrollHeight;
-  Live.presence(nick, id);
-  Live.announce({ type: "join", room: id, nick });
+  livePeople = [];
+  setComposer(true);
+  if (live) {
+    Net.open(id);
+  } else {
+    Local.history(id).forEach(m => addMsg(m));
+    sys(t("nowTalking", "#" + id));
+    sys(t("topicIs", topicOf(r)));
+    notice(t("welcome", nick));
+    notice(t("previewNotice"));
+    log.scrollTop = log.scrollHeight;
+    Local.presence(nick, id);
+    Local.announce({ type: "join", room: id, nick });
+  }
   paintPrompt(); renderChanlist(); updatePeople();
   if (matchMedia("(hover: hover) and (pointer: fine)").matches) msgInput.focus();
 }
+function leaveRoom() {
+  if (!current) return;
+  if (live) Net.close();
+  else Local.announce({ type: "part", room: current, nick });
+}
 function showLobby() {
-  if (current) { Live.announce({ type: "part", room: current, nick }); current = null; Live.presence(nick, ""); }
+  leaveRoom();
+  if (current && !live) Local.presence(nick, "");
+  current = null;
   $("#room").hidden = true;
   $("#lobby").hidden = false;
   document.title = "cIRCo.chat";
-  updateCounts();
+  if (live) refreshRooms(); else updateCounts();
   requestAnimationFrame(layoutSign);
 }
 function route() {
   const id = decodeURIComponent(location.hash.replace(/^#\/?/, "")).toLowerCase();
-  if (ROOM[id] && ROOM[id].open) return enterRoom(id);
+  const r = roomById(id);
+  if (r && r.open) return enterRoom(id);
   if (location.href.includes("#")) history.replaceState(null, "", location.pathname + location.search);
   showLobby();
 }
@@ -623,17 +1026,26 @@ function command(raw) {
   const arg = rest.join(" ").trim();
   switch ((cmd || "").toLowerCase()) {
     case "help": t("help").forEach(notice); break;
-    case "me": if (arg) say("act", arg); break;
+    case "me": if (arg) live ? Net.send({ type: "msg", kind: "act", text: arg }) : say("act", arg); break;
     case "nick": setNick(arg, true); break;
     case "join": case "j": {
-      const id = arg.replace(/^#/, "").toLowerCase();
-      if (!ROOM[id]) notice(t("noSuchRoom", "#" + id));
-      else if (!ROOM[id].open) notice(t("roomClosed", "#" + id));
+      const id = arg.replace(/^#/, "").toLowerCase(), r = roomById(id);
+      if (!r) notice(t("noSuchRoom", "#" + id));
+      else if (!r.open) notice(t("roomClosed", "#" + id));
       else location.hash = id;
       break;
     }
     case "part": case "leave": location.hash = ""; break;
-    case "topic": sys(t("topicIs", ROOM[current].topic[lang])); break;
+    case "report": {
+      if (!live) return notice(t("reportPreview"));
+      const who = arg.replace(/^@/, "").toLowerCase();
+      const lines = $$("#log .line[data-id]").filter(l => l.dataset.nick.toLowerCase() === who && l.dataset.nick !== nick);
+      if (!lines.length) return notice(t("noMsgFrom", arg));
+      const l = lines[lines.length - 1];
+      report(l.dataset.id, l.dataset.nick);
+      break;
+    }
+    case "topic": sys(t("topicIs", topicOf(roomById(current)))); break;
     case "clear": log.innerHTML = ""; lastDay = null; break;
     default: notice(t("unknownCmd", "/" + cmd));
   }
@@ -641,14 +1053,16 @@ function command(raw) {
 $("#composer").addEventListener("submit", e => {
   e.preventDefault();
   const v = msgInput.value.trim();
-  if (!v || !current) return;
+  if (!v || !current || msgInput.disabled) return;
   const isCmd = v.startsWith("/") && !v.startsWith("//");
   if (!isCmd && Date.now() - lastSent < CONFIG.minGapMs) return notice(t("slowDown"));
   msgInput.value = "";
   sent.push(v); sentPos = sent.length;
   if (isCmd) return command(v);
   lastSent = Date.now();
-  say("msg", v.startsWith("//") ? v.slice(1) : v);
+  const text = v.startsWith("//") ? v.slice(1) : v;
+  if (live) { if (!Net.send({ type: "msg", kind: "msg", text })) msgInput.value = v; }
+  else say("msg", text);
 });
 msgInput.addEventListener("keydown", e => {
   if (e.key === "ArrowUp" && sentPos > 0 && (!msgInput.value || msgInput.value === sent[sentPos])) { e.preventDefault(); msgInput.value = sent[--sentPos]; }
@@ -658,7 +1072,8 @@ msgInput.addEventListener("keydown", e => {
     const pos = msgInput.selectionStart, before = msgInput.value.slice(0, pos);
     const m = /([A-Za-z][\w-]*)$/.exec(before);
     if (!m) return;
-    const hit = Live.people(current).find(p => p !== nick && p.toLowerCase().startsWith(m[1].toLowerCase()));
+    const people = live ? livePeople : Local.people(current);
+    const hit = people.find(p => p !== nick && p.toLowerCase().startsWith(m[1].toLowerCase()));
     if (!hit) return;
     e.preventDefault();
     const start = pos - m[1].length, tail = start === 0 ? ": " : " ";
@@ -667,7 +1082,8 @@ msgInput.addEventListener("keydown", e => {
   }
 });
 
-Live.on(ev => {
+Local.on(ev => {
+  if (live) return;
   if (ev.type === "presence") { updateCounts(); updatePeople(); return; }
   if (!current || ev.room !== current) return;
   if (ev.type === "msg" && ev.msg) addMsg(ev.msg, false);
@@ -684,11 +1100,13 @@ function setLang(l) {
   $$("[data-lang]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === lang)));
   $$("[data-t]").forEach(el => { el.textContent = t(el.dataset.t); });
   $$("[data-t-aria]").forEach(el => el.setAttribute("aria-label", t(el.dataset.tAria)));
+  $$("[data-t-ph]").forEach(el => el.setAttribute("placeholder", t(el.dataset.tPh)));
   showHint("");
+  setModeTexts();
   renderRings();
   if (current) {
-    $("#chatTopic").textContent = ROOM[current].topic[lang];
-    msgInput.placeholder = t("placeholder", "#" + current);
+    $("#chatTopic").textContent = topicOf(roomById(current));
+    if (!msgInput.disabled) msgInput.placeholder = t("placeholder", "#" + current);
     updatePeople();
   }
   requestAnimationFrame(layoutSign);
@@ -703,15 +1121,18 @@ if (window.visualViewport) {
 }
 
 addEventListener("hashchange", route);
-addEventListener("pagehide", () => { if (current) Live.announce({ type: "part", room: current, nick }); Live.stop(); });
-addEventListener("pageshow", e => { if (e.persisted) Live.presence(nick, current || "", true); });
+addEventListener("pagehide", () => { if (!live && current) Local.announce({ type: "part", room: current, nick }); Local.stop(); });
+addEventListener("pageshow", e => { if (e.persisted && !live) Local.presence(nick, current || "", true); });
 
 nickInput.value = nick;
 setLang(lang);
-Live.start(nick);
-route();
+Local.start(nick);
 if ("ResizeObserver" in window) new ResizeObserver(() => layoutSign()).observe(sign);
 if (document.fonts) document.fonts.ready.then(layoutSign);
+refreshRooms(true).then(() => {
+  route();
+  setInterval(() => { if (live && !current && !document.hidden) refreshRooms(); }, CONFIG.pollMs);
+});
 })();
 </script>
 </body>
