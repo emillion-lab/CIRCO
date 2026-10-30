@@ -145,7 +145,7 @@ button{font:inherit;color:inherit}
 .prompt::after{content:"]";color:var(--faint)}
 .composer input{flex:1;min-width:0;padding:10px 4px;font:400 16px var(--mono);color:var(--paper);background:transparent;border:0;outline:0}
 .composer input::placeholder{color:var(--faint)}
-.composer button{flex:none;padding:9px 18px;font-weight:700;color:var(--night);background:var(--bulb);border:0;border-radius:999px;cursor:pointer}
+.composer button[type=submit]{flex:none;padding:9px 18px;font-weight:700;color:var(--night);background:var(--bulb);border:0;border-radius:999px;cursor:pointer}
 
 /* ---------- live rooms: new room, reports, rude text, dialogs ---------- */
 button.room{border:0;background:none;font:inherit;color:inherit;cursor:pointer}
@@ -158,6 +158,7 @@ button.room{border:0;background:none;font:inherit;color:inherit;cursor:pointer}
 .rude.shown .what{filter:none}
 .composer input:disabled{opacity:.6}
 .composer button:disabled{opacity:.4;cursor:default}
+.play .ic svg{display:block;width:.8em;height:.8em;margin:auto}
 dialog{width:min(440px,calc(100vw - 28px));padding:24px;border:1px solid var(--line);border-radius:22px;background:var(--night-2);color:var(--paper);box-shadow:0 40px 90px -30px #000}
 dialog::backdrop{background:rgba(9,7,13,.74);backdrop-filter:blur(5px)}
 dialog h2{margin:0 0 10px;font:700 20px/1.3 var(--mono)}
@@ -178,6 +179,23 @@ dialog .rule{font-size:15px;color:var(--faint)}
 .btn.danger{color:#fff;background:#C8352B;border-color:#C8352B}
 .btn:disabled{opacity:.5;cursor:default}
 @media (hover:none){.rep{opacity:.55}}
+.share,.mic{flex:none;display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;padding:0;border:1px solid var(--line);border-radius:50%;background:none;color:var(--paper);cursor:pointer}
+.share svg,.mic svg{width:18px;height:18px}
+.share:hover,.mic:hover{border-color:var(--bulb);color:var(--bulb)}
+body:not(.is-live) .mic{display:none}
+.rec{display:none;flex:1;align-items:center;gap:12px;min-width:0}
+.composer.recording>:not(.rec){display:none}
+.composer.recording .rec{display:flex}
+.rec .dot{width:11px;height:11px;flex:none;border-radius:50%;background:var(--red);box-shadow:0 0 10px var(--red);animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:.25}}
+.rec .time{min-width:4ch;font-weight:700}
+.rec .label{flex:1;min-width:0;overflow:hidden;color:var(--muted);white-space:nowrap;text-overflow:ellipsis}
+.rec .btn{padding:8px 16px}
+.play{display:inline-flex;align-items:center;gap:9px;padding:3px 14px 3px 10px;border:1px solid var(--line);border-radius:999px;background:var(--night-3);color:var(--paper);font:700 15px/1.3 var(--mono);text-indent:0;vertical-align:middle;cursor:pointer}
+.play .ic{width:1.2em;color:var(--bulb);text-align:center}
+.play .bars{color:var(--faint);letter-spacing:1px}
+.play.on{border-color:var(--bulb)}
+.play.on .bars{color:var(--bulb)}
 
 /* ---------- small screens ---------- */
 @media (max-width:1100px){.room-view{grid-template-columns:200px minmax(0,1fr)}.nicklist{display:none}}
@@ -247,12 +265,15 @@ dialog .rule{font-size:15px;color:var(--faint)}
       <span class="chat-emblem" id="chatEmblem"></span>
       <div class="chat-title"><h2 id="chatName"></h2><p id="chatTopic"></p></div>
       <span class="chat-here" id="chatHere"></span>
+      <button type="button" class="share" id="shareBtn" data-t-aria="share"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg></button>
     </header>
     <div class="log" id="log" role="log" aria-live="polite" tabindex="0"></div>
     <form class="composer" id="composer" autocomplete="off">
       <label class="prompt" id="prompt" for="msgInput"></label>
       <input id="msgInput" maxlength="400" autocomplete="off" enterkeyhint="send">
+      <button type="button" class="mic" id="micBtn" data-t-aria="voiceRec"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
       <button type="submit" data-t="send"></button>
+      <div class="rec" aria-live="polite"><span class="dot"></span><span class="time" id="recTime">0:00</span><span class="label" data-t="recording"></span><button type="button" class="btn" id="recCancel" data-t-aria="cancel">✕</button><button type="button" class="btn primary" id="recSend" data-t="send"></button></div>
     </form>
   </div>
   <aside class="nicklist"><h3 id="peopleHead"></h3><ul id="people"></ul></aside>
@@ -314,7 +335,7 @@ const TEXT = {
     nickChanged: (a, b) => `${a} is now known as ${b}`,
     nickInUse: (a, b) => `${a} is taken here, so you're ${b} for now.`,
     dayChanged: d => `Day changed to ${d}`,
-    help: ["/nick name    change your nickname", "/me text      describe what you're doing", "/join #room   go to another room", "/part         leave this room", "/report nick  report their last message", "/topic        show the topic", "/clear        clear your screen"],
+    help: ["/nick name    change your nickname", "/me text      describe what you're doing", "/join #room   go to another room", "/part         leave this room", "/report nick  report their last message", "/share        get a link to this room", "/topic        show the topic", "/clear        clear your screen"],
     unknownCmd: c => `Unknown command ${c}. Type /help.`,
     slowDown: "Slow down a little.",
     noSuchRoom: r => `There's no room called ${r}.`,
@@ -357,7 +378,19 @@ const TEXT = {
     reportPreview: "Reports work in the live rooms.",
     rudeHidden: "Rude text. Tap to see it.",
     reconnecting: "Connection lost. Reconnecting…",
-    notConnected: "Not connected yet."
+    notConnected: "Not connected yet.",
+    share: "Share this room",
+    shareText: (r, tp) => tp ? `Come to ${r} on cIRCo.chat: ${tp}` : `Come to ${r} on cIRCo.chat`,
+    shareCopied: l => `Link copied: ${l}`,
+    shareShow: l => `Share this link: ${l}`,
+    voiceRec: "Record a voice message",
+    recording: "Recording…",
+    micDenied: "No access to the microphone. Allow it in the browser and try again.",
+    voiceUnsupported: "This browser can't record audio.",
+    voiceBig: "That recording is too big. Keep it under a minute.",
+    voiceBad: "The recording didn't go through. Try again.",
+    voiceGone: "This recording has expired.",
+    voiceLabel: "voice message"
   },
   bg: {
     tagline: "Всяка стая е различно шоу.",
@@ -389,7 +422,7 @@ const TEXT = {
     nickChanged: (a, b) => `${a} вече е ${b}`,
     nickInUse: (a, b) => `${a} е зает тук, затова засега си ${b}.`,
     dayChanged: d => `Нов ден: ${d}`,
-    help: ["/nick име     смени ника си", "/me текст     опиши какво правиш", "/join #стая   отиди в друга стая", "/part         излез от стаята", "/report ник   докладвай последното му съобщение", "/topic        покажи темата", "/clear        изчисти екрана"],
+    help: ["/nick име     смени ника си", "/me текст     опиши какво правиш", "/join #стая   отиди в друга стая", "/part         излез от стаята", "/report ник   докладвай последното му съобщение", "/share        линк към стаята", "/topic        покажи темата", "/clear        изчисти екрана"],
     unknownCmd: c => `Непозната команда ${c}. Напиши /help.`,
     slowDown: "Малко по-бавно.",
     noSuchRoom: r => `Няма стая ${r}.`,
@@ -432,7 +465,19 @@ const TEXT = {
     reportPreview: "Докладите работят в живите стаи.",
     rudeHidden: "Груб текст. Натисни, за да го видиш.",
     reconnecting: "Връзката прекъсна. Свързвам отново…",
-    notConnected: "Още няма връзка."
+    notConnected: "Още няма връзка.",
+    share: "Сподели стаята",
+    shareText: (r, tp) => tp ? `Ела в ${r} на cIRCo.chat: ${tp}` : `Ела в ${r} на cIRCo.chat`,
+    shareCopied: l => `Линкът е копиран: ${l}`,
+    shareShow: l => `Сподели този линк: ${l}`,
+    voiceRec: "Запиши гласово съобщение",
+    recording: "Записвам…",
+    micDenied: "Няма достъп до микрофона. Разреши го в браузъра и опитай пак.",
+    voiceUnsupported: "Този браузър не може да записва звук.",
+    voiceBig: "Записът е твърде голям. Дръж го под минута.",
+    voiceBad: "Записът не мина. Опитай пак.",
+    voiceGone: "Този запис вече е изтекъл.",
+    voiceLabel: "гласово съобщение"
   }
 };
 
@@ -530,6 +575,9 @@ const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
 const pad = n => String(n).padStart(2, "0");
 const hhmm = ts => { const d = new Date(ts); return pad(d.getHours()) + ":" + pad(d.getMinutes()); };
 const dayKey = ts => new Date(ts).toDateString();
+const ICON_PLAY = `<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M2 1l7 4-7 4z" fill="currentColor"/></svg>`;
+const ICON_PAUSE = `<svg viewBox="0 0 10 10" aria-hidden="true"><rect x="1.8" y="1" width="2.4" height="8" fill="currentColor"/><rect x="5.8" y="1" width="2.4" height="8" fill="currentColor"/></svg>`;
+const fmtDur = s => `${Math.floor(s / 60)}:${pad(Math.floor(s % 60))}`;
 const NICK_COLORS = ["#FF6B5E", "#FF9F43", "#FFD447", "#7BD88F", "#3FC1C9", "#8BE9FD", "#7AA2FF", "#FF79C6", "#C792EA", "#E3C9A0"];
 const nickColor = n => { let h = 0x811c9dc5; for (const ch of n.toLowerCase()) { h ^= ch.charCodeAt(0); h = Math.imul(h, 0x01000193) >>> 0; } return NICK_COLORS[h % NICK_COLORS.length]; };
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
@@ -803,7 +851,7 @@ async function report(id, who) {
 
 /* ---------- room ---------- */
 let current = null, lastDay = null, lastSent = 0, livePeople = [];
-const log = $("#log"), msgInput = $("#msgInput"), sendBtn = $("#composer button");
+const log = $("#log"), msgInput = $("#msgInput"), sendBtn = $("#composer button[type=submit]");
 const sent = []; let sentPos = 0;
 
 function renderChanlist() {
@@ -831,6 +879,7 @@ function paintPrompt() {
 function setComposer(on, placeholder) {
   msgInput.disabled = !on;
   sendBtn.disabled = !on;
+  $("#micBtn").disabled = !on;
   msgInput.placeholder = placeholder || t("placeholder", "#" + current);
 }
 
@@ -870,9 +919,20 @@ const mentions = text => new RegExp(`(?:^|[^\\w-])${nick}(?![\\w-])`, "i").test(
 function addMsg(m, mine) {
   if (!m || typeof m.text !== "string" || typeof m.nick !== "string" || typeof m.t !== "number") return;
   if (mine == null) mine = m.nick === nick;
-  const el = m.kind === "act" ? line("act", m.t, "*", null, `${m.nick} ${m.text}`) : line("msg", m.t, m.nick, nickColor(m.nick), m.text);
+  const el = m.kind === "act" ? line("act", m.t, "*", null, `${m.nick} ${m.text}`) : line("msg", m.t, m.nick, nickColor(m.nick), m.kind === "voice" ? "" : m.text);
+  if (m.kind === "voice") {
+    const dur = Math.max(1, parseInt(m.text, 10) || 1);
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "play";
+    b.dataset.id = m.id;
+    b.dataset.dur = dur;
+    b.setAttribute("aria-label", `${t("voiceLabel")}, ${fmtDur(dur)}`);
+    b.innerHTML = `<span class="ic">${ICON_PLAY}</span><span class="bars" aria-hidden="true">▁▃▅▂▆▃▅▁</span><span class="tm">${fmtDur(dur)}</span>`;
+    $(".what", el).append(b);
+  }
   if (m.id) { el.dataset.id = m.id; el.dataset.nick = m.nick; }
-  if (!mine && mentions(m.text)) el.classList.add("mention");
+  if (!mine && m.kind !== "voice" && mentions(m.text)) el.classList.add("mention");
   if (m.rude && !mine) { el.classList.add("rude"); $(".what", el).title = t("rudeHidden"); }
   if (live && m.id && !mine) {
     const b = document.createElement("button");
@@ -887,6 +947,8 @@ function addMsg(m, mine) {
   push(el, m.t, mine);
 }
 log.addEventListener("click", e => {
+  const play = e.target.closest(".play");
+  if (play) return playVoice(play);
   const rep = e.target.closest(".rep");
   if (rep) { const l = rep.closest(".line"); return report(l.dataset.id, l.dataset.nick); }
   const rude = e.target.closest(".rude");
@@ -963,7 +1025,7 @@ function onServer(m) {
       }
       break;
     case "error":
-      notice({ slow: t("slowDown"), nick_taken: t("nickTaken"), bad_nick: t("nickBad"), rude_nick: t("rudeNick"), self_report: t("selfReport") }[m.code] || "");
+      notice({ slow: t("slowDown"), nick_taken: t("nickTaken"), bad_nick: t("nickBad"), rude_nick: t("rudeNick"), self_report: t("selfReport"), voice_big: t("voiceBig"), voice_bad: t("voiceBad") }[m.code] || "");
       break;
   }
 }
@@ -1000,6 +1062,8 @@ function enterRoom(id) {
 }
 function leaveRoom() {
   if (!current) return;
+  stopRec(true);
+  player.pause();
   if (live) Net.close();
   else Local.announce({ type: "part", room: current, nick });
 }
@@ -1045,6 +1109,7 @@ function command(raw) {
       report(l.dataset.id, l.dataset.nick);
       break;
     }
+    case "share": shareRoom(); break;
     case "topic": sys(t("topicIs", topicOf(roomById(current)))); break;
     case "clear": log.innerHTML = ""; lastDay = null; break;
     default: notice(t("unknownCmd", "/" + cmd));
@@ -1091,6 +1156,92 @@ Local.on(ev => {
   else if (ev.type === "part") sys(t("left", ev.nick, "#" + ev.room));
   else if (ev.type === "nick") sys(t("nickChanged", ev.old, ev.nick));
 });
+
+/* ---------- voice messages: up to a minute, sent through the room's socket ---------- */
+const composer = $("#composer");
+const Rec = { mr: null, stream: null, chunks: [], start: 0, dur: 0, timer: 0, cancelled: false };
+const pickMime = () => !window.MediaRecorder ? null : ["audio/webm;codecs=opus", "audio/mp4", "audio/ogg;codecs=opus", "audio/webm"].find(m => MediaRecorder.isTypeSupported(m)) || "";
+async function startRec() {
+  if (!live || !current || msgInput.disabled || Rec.mr) return;
+  const mime = pickMime();
+  if (mime === null || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return notice(t("voiceUnsupported"));
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }); }
+  catch { return notice(t("micDenied")); }
+  const mr = new MediaRecorder(stream, mime ? { mimeType: mime, audioBitsPerSecond: 32000 } : { audioBitsPerSecond: 32000 });
+  Object.assign(Rec, { mr, stream, chunks: [], start: Date.now(), dur: 0, cancelled: false });
+  mr.ondataavailable = e => { if (e.data && e.data.size) Rec.chunks.push(e.data); };
+  mr.onstop = finishRec;
+  mr.start(250);
+  composer.classList.add("recording");
+  tickRec();
+  Rec.timer = setInterval(tickRec, 250);
+}
+function tickRec() {
+  const s = (Date.now() - Rec.start) / 1000;
+  $("#recTime").textContent = fmtDur(s);
+  if (s >= 60) stopRec(false);
+}
+function stopRec(cancel) {
+  if (!Rec.mr || Rec.mr.state === "inactive") return;
+  Rec.cancelled = cancel;
+  Rec.dur = (Date.now() - Rec.start) / 1000;
+  Rec.mr.stop();
+}
+function finishRec() {
+  clearInterval(Rec.timer);
+  if (Rec.stream) Rec.stream.getTracks().forEach(tr => tr.stop());
+  composer.classList.remove("recording");
+  const mr = Rec.mr;
+  Rec.mr = null;
+  if (Rec.cancelled || Rec.dur < 1 || !mr) return;
+  const blob = new Blob(Rec.chunks, { type: mr.mimeType || "audio/webm" });
+  if (blob.size > 700000) return notice(t("voiceBig"));
+  const dur = Math.max(1, Math.round(Math.min(Rec.dur, 60)));
+  const fr = new FileReader();
+  fr.onload = () => Net.send({ type: "voice", mime: blob.type, dur, data: String(fr.result).split(",")[1] || "" });
+  fr.readAsDataURL(blob);
+}
+$("#micBtn").addEventListener("click", startRec);
+$("#recSend").addEventListener("click", () => stopRec(false));
+$("#recCancel").addEventListener("click", () => stopRec(true));
+
+const player = new Audio();
+let playing = null;
+function resetPlay(b) {
+  b.classList.remove("on");
+  $(".ic", b).innerHTML = ICON_PLAY;
+  $(".tm", b).textContent = fmtDur(+b.dataset.dur);
+}
+function playVoice(b) {
+  if (playing === b) { player.pause(); return; }
+  if (playing) resetPlay(playing);
+  playing = b;
+  b.classList.add("on");
+  $(".ic", b).innerHTML = ICON_PAUSE;
+  player.src = `${SERVER}/api/room/${encodeURIComponent(current)}/voice/${b.dataset.id}`;
+  player.play().catch(() => {});
+}
+const stopPlay = gone => { if (!playing) return; resetPlay(playing); playing = null; if (gone) notice(t("voiceGone")); };
+player.addEventListener("timeupdate", () => { if (playing) $(".tm", playing).textContent = fmtDur(player.currentTime); });
+player.addEventListener("pause", () => stopPlay(false));
+player.addEventListener("ended", () => stopPlay(false));
+player.addEventListener("error", () => stopPlay(true));
+
+/* ---------- share: a link that carries the room's name ---------- */
+const shareLink = id => live ? `${SERVER}/r/${id}` : `${location.origin}${location.pathname}#${id}`;
+async function shareRoom() {
+  const r = roomById(current);
+  if (!r) return;
+  const url = shareLink(current), text = t("shareText", "#" + current, topicOf(r));
+  if (navigator.share) {
+    try { await navigator.share({ title: `#${current} · cIRCo.chat`, text, url }); return; }
+    catch (e) { if (e && e.name === "AbortError") return; }
+  }
+  try { await navigator.clipboard.writeText(url); notice(t("shareCopied", url)); }
+  catch { notice(t("shareShow", url)); }
+}
+$("#shareBtn").addEventListener("click", shareRoom);
 
 /* ---------- language ---------- */
 function setLang(l) {
